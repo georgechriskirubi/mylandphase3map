@@ -1,47 +1,48 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <title>Mavoko Land Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-  <!-- Leaflet Search -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-search/dist/leaflet-search.min.css">
-  <!-- Leaflet Locate Control -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
+  <!-- Leaflet Core -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Leaflet Search Plugin -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-search@4.0.0/dist/leaflet-search.min.css" />
+  <script src="https://unpkg.com/leaflet-search@4.0.0/dist/leaflet-search.min.js"></script>
+
+  <!-- Leaflet Locate Plugin -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.css" />
+  <script src="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.js"></script>
 
   <style>
-    #map { height: 100vh; width: 100%; }
+    html, body, #map { height: 100%; margin: 0; padding: 0; }
+    .leaflet-control-search {
+      box-shadow: 0 0 5px rgba(0,0,0,0.3);
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <!-- Search plugin -->
-  <script src="https://unpkg.com/leaflet-control-search/dist/leaflet-search.min.js"></script>
-  <!-- Locate plugin -->
-  <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
-
   <script>
-    // 1️⃣ Initialize map
-    var map = L.map('map').setView([-1.45, 37.0], 12);
+    // Initialize the map
+    var map = L.map('map').setView([-1.45, 37.0], 13);
 
-    // 2️⃣ Add basemap
+    // Add OpenStreetMap base layer
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 20,
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // 3️⃣ Embedded GeoJSON data
-    var geojsonData = 
-    // 👇👇 Paste mavokoland.geojson content here 👇👇
-    {
-       "type": "FeatureCollection",
-	   "features": [
+    // Embed sample GeoJSON data (replace with your mavokoland.geojson data)
+    var geojsonData = {
+      
+     "type": "FeatureCollection",
+     "features": [
     {
       "type": "Feature",
       "properties": {
@@ -141566,51 +141567,41 @@
 
     };
 
-    // 4️⃣ Add GeoJSON layer
+    // Add GeoJSON layer
     var geoLayer = L.geoJSON(geojsonData, {
       onEachFeature: function (feature, layer) {
-        let popupContent = "";
+        let popup = "";
         for (let key in feature.properties) {
-          popupContent += "<b>" + key + ":</b> " + feature.properties[key] + "<br>";
+          popup += "<b>" + key + ":</b> " + feature.properties[key] + "<br>";
         }
-        layer.bindPopup(popupContent);
+        layer.bindPopup(popup);
       },
-      style: {
-        color: "#006600",
-        weight: 1,
-        fillOpacity: 0.4
-      }
+      style: { color: "#228B22", weight: 1, fillOpacity: 0.5 }
     }).addTo(map);
 
-    // 5️⃣ Fit map to data
+    // Fit map to GeoJSON bounds
     map.fitBounds(geoLayer.getBounds());
 
-    // 6️⃣ Add Search Control
+    // ✅ Add Search Control
     var searchControl = new L.Control.Search({
       layer: geoLayer,
-      propertyName: 'Parcel_NO', // change if your field name differs
-      zoom: 18,
+      propertyName: 'Parcel_NO',
       marker: false,
       moveToLocation: function(latlng, title, map) {
         map.setView(latlng, 18);
       }
     });
-
     searchControl.on('search:locationfound', function(e) {
-      e.layer.setStyle({ color: '#ff0000', fillColor: '#ff6666' });
-      if (e.layer._popup) e.layer.openPopup();
-    }).on('search:collapsed', function(e) {
-      geoLayer.eachLayer(function(layer) {
-        geoLayer.resetStyle(layer);
-      });
+      e.layer.setStyle({ color: '#ff0000', fillColor: '#ff9999' });
+      e.layer.openPopup();
     });
-
     map.addControl(searchControl);
 
-    // 7️⃣ Add real-time GPS locate button
+    // ✅ Add Locate (GPS) Control
     L.control.locate({
       position: 'topleft',
-      strings: { title: "Show my current location" },
+      flyTo: true,
+      strings: { title: "Show my location" },
       locateOptions: { enableHighAccuracy: true }
     }).addTo(map);
   </script>
