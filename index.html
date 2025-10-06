@@ -83,11 +83,36 @@
       <input type="email" id="email" placeholder="Email" required>
       <input type="password" id="password" placeholder="Password" required>
       <button id="loginBtn">Login</button>
+      <!-- 🔹 PART 4: Password Reset -->
+    <p style="text-align:center; margin-top:10px;">
+      <a href="#" id="resetPasswordLink">Forgot Password?</a>
+    </p>
+
+  <script>
+  // ✉️ Handle password reset
+  document.getElementById("resetPasswordLink").addEventListener("click", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("email").value.trim();
+    if (!email) {
+      alert("Please enter your email first to reset password.");
+      return;
+    }
+    try {
+      await auth.sendPasswordResetEmail(email);
+      alert("Password reset email sent! Check your inbox.");
+    } catch (error) {
+      alert("Error sending reset email: " + error.message);
+    }
+  });
+  </script>
+
+
     </div>
   </div>
 
   <!-- 🔒 BEGIN SECURE MAP AREA -->
   <div id="mapContainer">
+    
     <!-- 🌍 PASTE YOUR EXISTING MAP HTML AND GEOJSON CODE HERE -->
      <!DOCTYPE html>
 <html lang="en">
