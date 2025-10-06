@@ -54,8 +54,12 @@
   </style>
 
   <!-- 🔒 Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js"></script>
+    <!-- ✅ Firebase SDK (Modular v10+) -->
+    <script type="module">
+  // Import Firebase SDK
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
 
   <script>
     // 🔧 Your Firebase Configuration (replace with your actual Firebase config)
@@ -68,9 +72,16 @@
       appId: "1:53046594855:web:a6a8553bbb341f72376d02"
     };
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
+    // Initialize Firebase 
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Expose auth globally so later scripts can access it
+    window.auth = auth;
+    window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+    window.sendPasswordResetEmail = sendPasswordResetEmail;
+    window.onAuthStateChanged = onAuthStateChanged;
+    window.signOut = signOut;
   </script>
 </head>
 
