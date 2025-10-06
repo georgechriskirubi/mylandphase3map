@@ -1,4 +1,95 @@
 <!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Secure Mavoko Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+    }
+    #loginContainer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: #f5f5f5;
+    }
+    #loginBox {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      width: 300px;
+    }
+    #loginBox input {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    #loginBox button {
+      width: 100%;
+      padding: 10px;
+      background: #0078d7;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #loginBox button:hover {
+      background: #005fa3;
+    }
+    #mapContainer { display: none; }
+    #map { height: 100vh; width: 100%; }
+  </style>
+
+  <!-- 🔒 Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js"></script>
+
+  <script>
+    // 🔧 Your Firebase Configuration (replace with your actual Firebase config)
+    const firebaseConfig = {
+      apiKey: "AIzaSyAv9sckMh22FTjrnDQ0K4jxoMZ3alBRND8",
+      authDomain: "my-land-phase3-2025.firebaseapp.com",
+      projectId: "my-land-phase3-2025",
+      storageBucket: "my-land-phase3-2025.firebasestorage.app",
+      messagingSenderId: "53046594855",
+      appId: "1:53046594855:web:a6a8553bbb341f72376d02"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+  </script>
+</head>
+
+<body>
+
+  <!-- 🔐 LOGIN SECTION -->
+  <div id="loginContainer">
+    <div id="loginBox">
+      <h2 style="text-align:center;">Secure Map Login</h2>
+      <input type="email" id="email" placeholder="Email" required>
+      <input type="password" id="password" placeholder="Password" required>
+      <button id="loginBtn">Login</button>
+    </div>
+  </div>
+
+  <!-- 🔒 BEGIN SECURE MAP AREA -->
+  <div id="mapContainer">
+    <!-- 🌍 PASTE YOUR EXISTING MAP HTML AND GEOJSON CODE HERE -->
+     <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -141605,5 +141696,76 @@
       locateOptions: { enableHighAccuracy: true }
     }).addTo(map);
   </script>
+</body>
+</html>
+
+    <div id="map"></div>
+
+    <!-- Example Leaflet Base (you can keep your working version) -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script>
+      var map = L.map('map').setView([-1.45, 37.0], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 20,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      L.Control.geocoder().addTo(map);
+
+      map.locate({setView: true, watch: true, maxZoom: 16});
+      function onLocationFound(e) {
+        var radius = e.accuracy / 2;
+        L.marker(e.latlng).addTo(map)
+          .bindPopup("You are within " + radius.toFixed(1) + " meters from this point").openPopup();
+        L.circle(e.latlng, radius).addTo(map);
+      }
+      map.on('locationfound', onLocationFound);
+
+      // Load your GeoJSON file
+      fetch('mavokoland.geojson')
+        .then(response => response.json())
+        .then(data => {
+          const geoLayer = L.geoJSON(data, {
+            onEachFeature: function (feature, layer) {
+              let popupContent = "";
+              for (let key in feature.properties) {
+                popupContent += "<b>" + key + ":</b> " + feature.properties[key] + "<br>";
+              }
+              layer.bindPopup(popupContent);
+            },
+            style: { color: "#007800", weight: 1, fillOpacity: 0.5 }
+          }).addTo(map);
+          map.fitBounds(geoLayer.getBounds());
+        });
+    </script>
+  </div>
+  <!-- 🔒 END SECURE MAP AREA -->
+
+  <!-- 🔐 AUTH LOGIC -->
+  <script>
+    document.getElementById("loginBtn").addEventListener("click", async () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+        document.getElementById("loginContainer").style.display = "none";
+        document.getElementById("mapContainer").style.display = "block";
+      } catch (error) {
+        alert("Login failed: " + error.message);
+      }
+    });
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        document.getElementById("loginContainer").style.display = "none";
+        document.getElementById("mapContainer").style.display = "block";
+      } else {
+        document.getElementById("loginContainer").style.display = "flex";
+        document.getElementById("mapContainer").style.display = "none";
+      }
+    });
+  </script>
+
 </body>
 </html>
