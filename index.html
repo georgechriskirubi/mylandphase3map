@@ -12,7 +12,7 @@
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: #e0f2f1;
+      background: #f0f2f5;
     }
 
     header {
@@ -20,32 +20,38 @@
       color: white;
       text-align: center;
       padding: 15px;
+      font-size: 20px;
+      font-weight: bold;
     }
 
-    #login-section, #map-section {
-      display: none;
+    #login-section {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 90vh;
     }
 
-    .container {
-      max-width: 400px;
-      margin: 60px auto;
+    .login-box {
       background: white;
+      padding: 30px;
       border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      padding: 20px;
-    }
-
-    .container h2 {
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      width: 300px;
       text-align: center;
-      color: #004d40;
     }
 
-    input[type="email"], input[type="password"] {
+    .login-box h3 {
+      color: #004d40;
+      margin-bottom: 20px;
+    }
+
+    input {
       width: 100%;
       padding: 10px;
       margin: 8px 0;
       border: 1px solid #ccc;
       border-radius: 5px;
+      font-size: 14px;
     }
 
     button {
@@ -56,11 +62,11 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
-      margin-top: 10px;
+      font-weight: bold;
     }
 
     button:hover {
-      background: #00695c;
+      background: #00796b;
     }
 
     #logout-btn {
@@ -78,58 +84,47 @@
       font-weight: bold;
     }
 
-    #logout-btn:hover {
-      background: #b71c1c;
-    }
-
     #map {
       width: 100%;
       height: 90vh;
+      display: none;
     }
   </style>
 </head>
 
 <body>
-  <header>
-    <h2>Secure Mavoko Land Map</h2>
-  </header>
+  <header>Secure Mavoko Land Map</header>
 
-  <!-- 🔒 LOGIN SECTION -->
+  <!-- 🔐 LOGIN SECTION -->
   <section id="login-section">
-    <div class="container">
-      <h2>Login to Continue</h2>
-      <input type="email" id="email" placeholder="Enter your email" required />
-      <input type="password" id="password" placeholder="Enter your password" required />
+    <div class="login-box">
+      <h3>Login</h3>
+      <input type="email" id="email" placeholder="Email" />
+      <input type="password" id="password" placeholder="Password" />
       <button id="login-btn">Login</button>
-      <p style="text-align:center; color: #555; margin-top: 10px;">
-        Don’t have an account? <a href="#" id="register-link">Register</a>
-      </p>
+      <p style="margin-top:10px;font-size:13px;color:#555;">No account? It will auto-create one.</p>
     </div>
   </section>
 
   <!-- 🗺️ MAP SECTION -->
-  <section id="map-section">
-    <button id="logout-btn">Logout</button>
-
-    <!-- ✅ Your map container -->
-    <div id="map"></div>
-  </section>
+  <button id="logout-btn">Logout</button>
+  <div id="map"></div>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-  <!-- Firebase Modular SDK (v10+) -->
+  <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-    import { 
-      getAuth, 
-      signInWithEmailAndPassword, 
-      createUserWithEmailAndPassword, 
-      onAuthStateChanged, 
-      signOut 
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      onAuthStateChanged,
+      signOut
     } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
-    // 🔐 Firebase configuration
+    // ✅ Your Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyAv9sckMh22FTjrnDQ0K4jxoMZ3alBRND8",
       authDomain: "my-land-phase3-2025.firebaseapp.com",
@@ -143,55 +138,57 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    // DOM references
+    // Elements
     const loginSection = document.getElementById("login-section");
-    const mapSection = document.getElementById("map-section");
-    const loginBtn = document.getElementById("login-btn");
+    const mapDiv = document.getElementById("map");
     const logoutBtn = document.getElementById("logout-btn");
+    const loginBtn = document.getElementById("login-btn");
 
-    // Show login section by default
-    loginSection.style.display = "block";
-
-    // Handle login
+    // Login / Register
     loginBtn.addEventListener("click", async () => {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      if (!email || !password) {
+        alert("Please enter both email and password.");
+        return;
+      }
 
       try {
         await signInWithEmailAndPassword(auth, email, password);
         alert("✅ Login successful!");
-      } catch (error) {
-        if (error.code === "auth/user-not-found") {
-          alert("No account found. Creating one...");
+      } catch (err) {
+        if (err.code === "auth/user-not-found") {
           await createUserWithEmailAndPassword(auth, email, password);
-          alert("✅ Account created successfully!");
+          alert("✅ Account created successfully! You are now logged in.");
         } else {
-          alert("Error: " + error.message);
+          alert("Error: " + err.message);
         }
       }
     });
 
-    // Handle logout
+    // Logout
     logoutBtn.addEventListener("click", async () => {
       await signOut(auth);
     });
 
-    // Track authentication state
+    // Track user state
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        // When logged in
+        // Logged in
         loginSection.style.display = "none";
-        mapSection.style.display = "block";
+        mapDiv.style.display = "block";
         logoutBtn.style.display = "block";
 
-        // 🗺️ Initialize map only once
+        // 🗺️ Initialize map once
         if (!window.mapInitialized) {
           const map = L.map('map').setView([-1.438, 37.012], 14);
+
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
           }).addTo(map);
 
-          // 🚩🚩🚩 PASTE YOUR index.html MAP SCRIPT BELOW THIS LINE 🚩🚩🚩
+          // 🚩🚩🚩 PASTE YOUR INDEX.HTML MAP SCRIPT BELOW THIS LINE 🚩🚩🚩
           <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -141802,15 +141799,16 @@
 </body>
 </html>
 
-          // 🚩🚩🚩 END OF YOUR MAP CODE SECTION 🚩🚩🚩
+          // 🚩🚩🚩 END OF YOUR MAP SCRIPT SECTION 🚩🚩🚩
 
           window.mapInitialized = true;
         }
+
       } else {
-        // When logged out
-        mapSection.style.display = "none";
+        // Logged out
+        loginSection.style.display = "flex";
+        mapDiv.style.display = "none";
         logoutBtn.style.display = "none";
-        loginSection.style.display = "block";
       }
     });
   </script>
