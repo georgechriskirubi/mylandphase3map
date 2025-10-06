@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Secure Mavoko Land Map - Login Required</title>
+  <title>Secure Mavoko Land Map</title>
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
@@ -14,18 +14,15 @@
       font-family: Arial, sans-serif;
       background: #e0f2f1;
     }
-
     header {
       background: #004d40;
       color: white;
       text-align: center;
       padding: 15px;
     }
-
     #login-section, #map-section {
       display: none;
     }
-
     .container {
       max-width: 400px;
       margin: 60px auto;
@@ -34,12 +31,10 @@
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
       padding: 20px;
     }
-
     .container h2 {
       text-align: center;
       color: #004d40;
     }
-
     input[type="email"], input[type="password"] {
       width: 100%;
       padding: 10px;
@@ -47,7 +42,6 @@
       border: 1px solid #ccc;
       border-radius: 5px;
     }
-
     button {
       width: 100%;
       padding: 10px;
@@ -58,11 +52,7 @@
       cursor: pointer;
       margin-top: 10px;
     }
-
-    button:hover {
-      background: #00695c;
-    }
-
+    button:hover { background: #00695c; }
     #logout-btn {
       position: fixed;
       top: 10px;
@@ -75,14 +65,12 @@
       cursor: pointer;
       display: none;
     }
-
     #map {
       width: 100%;
       height: 90vh;
     }
   </style>
 </head>
-
 <body>
   <header>
     <h2>Secure Mavoko Land Map</h2>
@@ -96,7 +84,7 @@
       <input type="password" id="password" placeholder="Enter your password" required />
       <button id="login-btn">Login</button>
       <p style="text-align:center; color: #555; margin-top: 10px;">
-        Don’t have an account? <a href="#" id="register-link">Register here</a>
+        Don’t have an account? <a href="#" id="register-link">Register</a>
       </p>
     </div>
   </section>
@@ -141720,12 +141708,21 @@
     </div>
   </section>
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js"></script>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-  <script>
-    // 🔐 Your Firebase configuration
+  <!-- Firebase Modular SDK (v10+) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+    import { 
+      getAuth, 
+      signInWithEmailAndPassword, 
+      createUserWithEmailAndPassword, 
+      onAuthStateChanged, 
+      signOut 
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+    // 🔐 Firebase configuration
     const firebaseConfig = {
       apiKey: "AIzaSyAv9sckMh22FTjrnDQ0K4jxoMZ3alBRND8",
       authDomain: "my-land-phase3-2025.firebaseapp.com",
@@ -141736,45 +141733,45 @@
     };
 
     // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
 
-    // DOM Elements
+    // DOM references
     const loginSection = document.getElementById("login-section");
     const mapSection = document.getElementById("map-section");
     const loginBtn = document.getElementById("login-btn");
     const logoutBtn = document.getElementById("logout-btn");
     const registerLink = document.getElementById("register-link");
 
-    // Show login form initially
+    // Show login section by default
     loginSection.style.display = "block";
 
-    // Handle login
+    // Handle Login
     loginBtn.addEventListener("click", async () => {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
 
       try {
-        await auth.signInWithEmailAndPassword(email, password);
-        alert("Login successful!");
+        await signInWithEmailAndPassword(auth, email, password);
+        alert("✅ Login successful!");
       } catch (error) {
         if (error.code === "auth/user-not-found") {
-          alert("No account found. Registering new user...");
-          await auth.createUserWithEmailAndPassword(email, password);
-          alert("Account created successfully!");
+          alert("No account found. Creating one...");
+          await createUserWithEmailAndPassword(auth, email, password);
+          alert("✅ Account created successfully!");
         } else {
           alert("Error: " + error.message);
         }
       }
     });
 
-    // Handle logout
+    // Handle Logout
     logoutBtn.addEventListener("click", async () => {
-      await auth.signOut();
+      await signOut(auth);
     });
 
-    // Auth state listener
-    auth.onAuthStateChanged((user) => {
+    // Listen for Auth Changes
+    onAuthStateChanged(auth, (user) => {
       if (user) {
         // Logged in
         loginSection.style.display = "none";
@@ -141787,22 +141784,19 @@
         loginSection.style.display = "block";
       }
     });
-  </script>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
-  <!-- 🗺️ Example Map (You can replace this with your actual GeoJSON map code) -->
-  <script>
-    // Example map initialization — replace with your real map code
+    // Initialize Map (example)
     const map = L.map('map').setView([-1.438, 37.012], 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // Example GeoJSON layer placeholder
-    // Replace this with your GeoJSON map loading code
-    // L.geoJSON(yourGeoJsonData).addTo(map);
+    // 🟢 You will paste your GeoJSON map code right below this line:
+    // Example placeholder:
+    // fetch('yourfile.geojson').then(r=>r.json()).then(data=>{
+    //   L.geoJSON(data).addTo(map);
+    // });
+
   </script>
 </body>
 </html>
