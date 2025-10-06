@@ -111,8 +111,7 @@
   <section id="map-section">
     <button id="logout-btn">Logout</button>
 
-    <!-- 🔹 PLACE YOUR EXISTING MAP CODE (from index.html) INSIDE THIS DIV -->
-    <!-- You can paste your map container <div id="map"></div> and your GeoJSON script below -->
+    <!-- ✅ Your map container -->
     <div id="map"></div>
   </section>
 
@@ -192,13 +191,7 @@
             attribution: '&copy; OpenStreetMap contributors'
           }).addTo(map);
 
-          // ✅ INSERT YOUR WORKING MAP CODE (from index.html) BELOW THIS LINE
-          // For example, if your old index.html had:
-          // fetch("yourfile.geojson")
-          //   .then(response => response.json())
-          //   .then(data => L.geoJSON(data).addTo(map));
-
-          // Example placeholder (remove after adding your map code)
+          // 🚩🚩🚩 PASTE YOUR index.html MAP SCRIPT BELOW THIS LINE 🚩🚩🚩
           <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -141809,6 +141802,16 @@
 </body>
 </html>
 
+          // 🚩🚩🚩 END OF YOUR MAP CODE SECTION 🚩🚩🚩
+
+          window.mapInitialized = true;
+        }
+      } else {
+        // When logged out
+        mapSection.style.display = "none";
+        logoutBtn.style.display = "none";
+        loginSection.style.display = "block";
+      }
     });
   </script>
 </body>
