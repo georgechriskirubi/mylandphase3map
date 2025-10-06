@@ -53,73 +53,12 @@
     #map { height: 100vh; width: 100%; }
   </style>
 
-  <!-- 🔒 Firebase SDKs -->
-    <!-- ✅ Firebase SDK (Modular v10+) -->
-    <script type="module">
-  // Import Firebase SDK
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-
-
-  <script>
-    // 🔧 Your Firebase Configuration (replace with your actual Firebase config)
-    const firebaseConfig = {
-      apiKey: "AIzaSyAv9sckMh22FTjrnDQ0K4jxoMZ3alBRND8",
-      authDomain: "my-land-phase3-2025.firebaseapp.com",
-      projectId: "my-land-phase3-2025",
-      storageBucket: "my-land-phase3-2025.firebasestorage.app",
-      messagingSenderId: "53046594855",
-      appId: "1:53046594855:web:a6a8553bbb341f72376d02"
-    };
-
-    // Initialize Firebase 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-
-    // Expose auth globally so later scripts can access it
-    window.auth = auth;
-    window.signInWithEmailAndPassword = signInWithEmailAndPassword;
-    window.sendPasswordResetEmail = sendPasswordResetEmail;
-    window.onAuthStateChanged = onAuthStateChanged;
-    window.signOut = signOut;
-  </script>
+ 
 </head>
 
 <body>
 
-  <!-- 🔐 LOGIN SECTION -->
-  <div id="loginContainer">
-    <div id="loginBox">
-      <h2 style="text-align:center;">Secure Map Login</h2>
-      <input type="email" id="email" placeholder="Email" required>
-      <input type="password" id="password" placeholder="Password" required>
-      <button id="loginBtn">Login</button>
-      <!-- 🔹 PART 4: Password Reset -->
-    <p style="text-align:center; margin-top:10px;">
-      <a href="#" id="resetPasswordLink">Forgot Password?</a>
-    </p>
-
-  <script>
-  // ✉️ Handle password reset
-  document.getElementById("resetPasswordLink").addEventListener("click", async (e) => {
-    e.preventDefault();
-    const email = document.getElementById("email").value.trim();
-    if (!email) {
-      alert("Please enter your email first to reset password.");
-      return;
-    }
-    try {
-      await auth.sendPasswordResetEmail(email);
-      alert("Password reset email sent! Check your inbox.");
-    } catch (error) {
-      alert("Error sending reset email: " + error.message);
-    }
-  });
-  </script>
-
-
-    </div>
-  </div>
+ 
 
   <!-- 🔒 BEGIN SECURE MAP AREA -->
   <div id="mapContainer">
@@ -141802,6 +141741,120 @@
       }
     });
   </script>
+<script type="module">
+  // ✅ Import Firebase libraries (v10+ modular SDK)
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { 
+    getAuth, 
+    signInWithEmailAndPassword, 
+    sendPasswordResetEmail, 
+    onAuthStateChanged, 
+    signOut 
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
+  // 🔧 Firebase config (replace with your real Firebase project details)
+  const firebaseConfig = {
+     apiKey: "AIzaSyAv9sckMh22FTjrnDQ0K4jxoMZ3alBRND8",
+      authDomain: "my-land-phase3-2025.firebaseapp.com",
+      projectId: "my-land-phase3-2025",
+      storageBucket: "my-land-phase3-2025.firebasestorage.app",
+      messagingSenderId: "53046594855",
+      appId: "1:53046594855:web:a6a8553bbb341f72376d02"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  // 🔐 Elements
+  const loginContainer = document.getElementById("loginContainer");
+  const mapContainer = document.getElementById("mapContainer");
+  const adminContainer = document.getElementById("adminContainer");
+  const loginBtn = document.getElementById("loginBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const logoutAdmin = document.getElementById("logoutAdmin");
+  const resetPasswordLink = document.getElementById("resetPasswordLink");
+
+  // 👑 Admin credentials
+  const ADMIN_USERNAME = "ADMIN";
+  const ADMIN_PASSWORD = "Km789Rg@456";
+
+  // 🔘 Login handler
+  loginBtn.addEventListener("click", async () => {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (email === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+      loginContainer.style.display = "none";
+      adminContainer.style.display = "flex";
+      loadUserList();
+      return;
+    }
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      alert("Login failed: " + error.message);
+    }
+  });
+
+  // 🔄 Firebase auth state
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      loginContainer.style.display = "none";
+      mapContainer.style.display = "block";
+    } else {
+      loginContainer.style.display = "flex";
+      mapContainer.style.display = "none";
+    }
+  });
+
+  // 🚪 Logout buttons
+  logoutBtn.addEventListener("click", () => signOut(auth));
+  logoutAdmin.addEventListener("click", () => {
+    adminContainer.style.display = "none";
+    loginContainer.style.display = "flex";
+  });
+
+  // ✉️ Password reset
+  if (resetPasswordLink) {
+    resetPasswordLink.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value.trim();
+      if (!email) {
+        alert("Enter your email to reset password");
+        return;
+      }
+      try {
+        await sendPasswordResetEmail(auth, email);
+        alert("Password reset email sent! Check your inbox.");
+      } catch (error) {
+        alert("Error: " + error.message);
+      }
+    });
+  }
+
+  // 🧾 Admin dummy user list
+  window.loadUserList = function() {
+    const dummyUsers = [
+      { email: "user1@example.com" },
+      { email: "user2@example.com" },
+      { email: "user3@example.com" }
+    ];
+    const userList = document.getElementById("userList");
+    userList.innerHTML = "";
+    dummyUsers.forEach(u => {
+      const row = document.createElement("tr");
+      row.innerHTML = `<td>${u.email}</td>
+                       <td><button onclick="revokeUser('${u.email}')">Revoke</button></td>`;
+      userList.appendChild(row);
+    });
+  };
+
+  // ⚙️ Dummy revoke
+  window.revokeUser = function(email) {
+    alert("Revoking access for " + email + " (Firebase Admin SDK would handle this)");
+  };
+</script>
 </body>
 </html>
