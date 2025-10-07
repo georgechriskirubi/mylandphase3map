@@ -140,7 +140,7 @@
   <div id="searchContainer">
     <button id="searchToggle">🔍</button>
     <div id="searchBox">
-      <input type="text" id="searchInput" placeholder="Search Parcel No..." />
+      <input type="text" id="searchInput" placeholder="Search Parcel No..." autocomplete="off" />
       <div id="suggestions"></div>
     </div>
   </div>
@@ -219,6 +219,7 @@
 
       L.control.locate({ position: "topleft", strings: { title: "Show my location" }, flyTo: true }).addTo(map);
 
+      // Demo parcels
       const geojsonData = {
   "type": "FeatureCollection",
   "features": [
@@ -141756,7 +141757,7 @@
       map.fitBounds(parcelsLayer.getBounds());
       const parcels = geojsonData.features.map(f => f.properties.Parcel_NO);
 
-      // Collapsible Search Toggle
+      // Collapsible toggle
       let searchOpen = false;
       searchToggle.onclick = (e) => {
         e.stopPropagation();
@@ -141765,7 +141766,7 @@
         if (searchOpen) searchInput.focus();
       };
 
-      // Close search when clicking outside
+      // Close when clicking outside
       document.addEventListener("click", (e) => {
         if (searchOpen && !searchContainer.contains(e.target)) {
           searchBox.style.display = "none";
@@ -141774,22 +141775,22 @@
         }
       });
 
-      // Auto-suggest logic
+      // Auto-suggest and zoom logic
       searchInput.addEventListener("input", () => {
-        const value = searchInput.value.trim().toLowerCase();
+        const query = searchInput.value.trim().toLowerCase();
         suggestions.innerHTML = "";
-        if (!value) { suggestions.style.display = "none"; return; }
+        if (!query) { suggestions.style.display = "none"; return; }
 
-        const matches = parcels.filter(p => p.toLowerCase().includes(value));
+        const matches = parcels.filter(p => p.toLowerCase().includes(query));
         if (matches.length) {
           matches.forEach(match => {
             const div = document.createElement("div");
             div.textContent = match;
-            div.onclick = () => {
+            div.addEventListener("click", () => {
               searchInput.value = match;
               suggestions.style.display = "none";
               zoomToParcel(match);
-            };
+            });
             suggestions.appendChild(div);
           });
           suggestions.style.display = "block";
@@ -141798,14 +141799,16 @@
         }
       });
 
-      // Zoom function
       function zoomToParcel(parcelNo) {
+        let found = false;
         parcelsLayer.eachLayer(layer => {
-          if (layer.feature.properties.Parcel_NO === parcelNo) {
+          if (layer.feature.properties.Parcel_NO.toLowerCase() === parcelNo.toLowerCase()) {
+            found = true;
             map.fitBounds(layer.getBounds());
             layer.openPopup();
           }
         });
+        if (!found) alert("Parcel not found: " + parcelNo);
       }
 
       // Live Time
