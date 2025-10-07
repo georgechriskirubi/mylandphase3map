@@ -21,7 +21,7 @@
     html, body { height: 100%; margin: 0; }
     #map { height: 100vh; width: 100%; display: none; }
 
-    /* Login page */
+    /* Login */
     #loginForm {
       display: flex;
       flex-direction: column;
@@ -44,7 +44,7 @@
       z-index: 1000;
     }
 
-    /* Bottom right info box */
+    /* User info bottom-right */
     #userInfo {
       position: fixed;
       bottom: 10px;
@@ -66,18 +66,35 @@
       color: #444;
     }
 
-    /* Auto-suggest search box */
-    #searchBox {
+    /* Collapsible search button */
+    #searchContainer {
       position: fixed;
       top: 10px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 1000;
-      background: white;
-      border-radius: 6px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-      padding: 5px;
       display: none;
+    }
+
+    #searchToggle {
+      background: white;
+      border: none;
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      width: 40px;
+      height: 40px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    #searchBox {
+      display: none;
+      background: white;
+      margin-top: 6px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      padding: 6px;
+      text-align: center;
     }
 
     #searchInput {
@@ -85,6 +102,7 @@
       padding: 6px;
       border: 1px solid #ccc;
       border-radius: 4px;
+      outline: none;
     }
 
     #suggestions {
@@ -110,10 +128,10 @@
   <!-- Logout Button -->
   <button id="logoutBtn">Logout</button>
 
-  <!-- Bottom right info -->
+  <!-- Bottom Right Info -->
   <div id="userInfo"></div>
 
-  <!-- Login form -->
+  <!-- Login Form -->
   <div id="loginForm">
     <h2>Secure Mavoko Land Map Login</h2>
     <input type="email" id="email" placeholder="Email" /><br>
@@ -122,13 +140,16 @@
     <p id="loginMsg" style="color:red;"></p>
   </div>
 
-  <!-- Map container -->
+  <!-- Map -->
   <div id="map"></div>
 
-  <!-- Search box -->
-  <div id="searchBox">
-    <input type="text" id="searchInput" placeholder="Search Parcel No..." />
-    <div id="suggestions"></div>
+  <!-- Search Icon + Box -->
+  <div id="searchContainer">
+    <button id="searchToggle">🔍</button>
+    <div id="searchBox">
+      <input type="text" id="searchInput" placeholder="Search Parcel No..." />
+      <div id="suggestions"></div>
+    </div>
   </div>
 
   <script>
@@ -141,7 +162,6 @@
       messagingSenderId: "53046594855",
       appId: "1:53046594855:web:a6a8553bbb341f72376d02"
     };
-
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
 
@@ -151,10 +171,13 @@
     const loginMsg = document.getElementById("loginMsg");
     const logoutBtn = document.getElementById("logoutBtn");
     const userInfo = document.getElementById("userInfo");
+    const searchContainer = document.getElementById("searchContainer");
+    const searchToggle = document.getElementById("searchToggle");
     const searchBox = document.getElementById("searchBox");
     const searchInput = document.getElementById("searchInput");
     const suggestions = document.getElementById("suggestions");
 
+    // 🔐 Login
     loginBtn.addEventListener("click", () => {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
@@ -163,33 +186,34 @@
         .catch(err => loginMsg.textContent = "Login failed: " + err.message);
     });
 
+    // 🚪 Logout
     logoutBtn.addEventListener("click", () => auth.signOut());
 
-    // 🧭 Auth state change
+    // 🧭 Auth Listener
     auth.onAuthStateChanged(user => {
       if (user) {
         loginForm.style.display = "none";
         mapDiv.style.display = "block";
         logoutBtn.style.display = "block";
         userInfo.style.display = "block";
-        searchBox.style.display = "block";
+        searchContainer.style.display = "block";
         initMap(user.email);
       } else {
         loginForm.style.display = "flex";
         mapDiv.style.display = "none";
         logoutBtn.style.display = "none";
         userInfo.style.display = "none";
-        searchBox.style.display = "none";
+        searchContainer.style.display = "none";
       }
     });
 
-    // 🗺️ Initialize Map
+    // 🗺️ Map Function
     function initMap(userEmail) {
       const map = L.map("map").setView([-1.44, 37.00], 15);
 
       const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
-        attribution: "© OpenStreetMap contributors"
+        attribution: "© OpenStreetMap"
       }).addTo(map);
 
       const satellite = L.tileLayer("https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", {
@@ -203,13 +227,9 @@
         null, { position: "topleft" }
       ).addTo(map);
 
-      L.control.locate({
-        position: "topleft",
-        strings: { title: "Show my location" },
-        flyTo: true
-      }).addTo(map);
+      L.control.locate({ position: "topleft", strings: { title: "Show my location" }, flyTo: true }).addTo(map);
 
-      // 🧩 GeoJSON Data Example
+      // 🧩 GeoJSON Data
       const geojsonData = {
   "type": "FeatureCollection",
   "features": [
@@ -141746,13 +141766,17 @@
 
       map.fitBounds(parcelsLayer.getBounds());
 
-      // 🧠 Build search suggestion list
-      const parcels = geojsonData.features.map(f => ({
-        id: f.properties.Parcel_NO,
-        layer: f
-      }));
+      const parcels = geojsonData.features.map(f => f.properties.Parcel_NO);
 
-      // 🔍 Search with auto-suggest
+      // 🔍 Collapsible Search
+      let searchOpen = false;
+      searchToggle.onclick = () => {
+        searchOpen = !searchOpen;
+        searchBox.style.display = searchOpen ? "block" : "none";
+        if (searchOpen) searchInput.focus();
+      };
+
+      // Auto-suggest working logic
       searchInput.addEventListener("input", () => {
         const value = searchInput.value.trim().toLowerCase();
         suggestions.innerHTML = "";
@@ -141761,15 +141785,15 @@
           return;
         }
 
-        const matches = parcels.filter(p => p.id.toLowerCase().includes(value));
+        const matches = parcels.filter(p => p.toLowerCase().includes(value));
         if (matches.length > 0) {
           matches.forEach(match => {
             const div = document.createElement("div");
-            div.textContent = match.id;
+            div.textContent = match;
             div.onclick = () => {
-              searchInput.value = match.id;
+              searchInput.value = match;
               suggestions.style.display = "none";
-              zoomToParcel(match.id);
+              zoomToParcel(match);
             };
             suggestions.appendChild(div);
           });
@@ -141788,7 +141812,7 @@
         });
       }
 
-      // ⏰ Live time updater (bottom right)
+      // ⏰ Live Time
       function updateTime() {
         const now = new Date();
         userInfo.innerHTML = `Welcome, ${userEmail}<br><span id="dateTime">${now.toLocaleString()}</span>`;
