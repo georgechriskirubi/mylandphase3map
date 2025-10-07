@@ -6,18 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
-  />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.css"
-  />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
 
   <style>
     body {
@@ -84,6 +75,10 @@
       border: 1px solid #ccc;
       border-radius: 4px;
     }
+    datalist {
+      max-height: 200px;
+      overflow-y: auto;
+    }
   </style>
 </head>
 
@@ -98,7 +93,8 @@
   </div>
 
   <div id="searchBox">
-    <input type="text" id="parcelSearch" placeholder="Search Parcel_NO..." />
+    <input type="text" id="parcelSearch" list="parcelList" placeholder="Search Parcel_NO..." />
+    <datalist id="parcelList"></datalist>
     <button onclick="searchParcel()">Search</button>
   </div>
 
@@ -137,15 +133,28 @@
     const logoutBtn = document.getElementById("logoutBtn");
     const searchBox = document.getElementById("searchBox");
     const searchInput = document.getElementById("parcelSearch");
+    const parcelList = document.getElementById("parcelList");
 
-    let map, geoLayer;
+    let map, geoLayer, parcelIndex = {};
 
     function initMap() {
       map = L.map("map").setView([-1.45, 37.0], 13);
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      // 🗺️ Base layers
+      const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "© OpenStreetMap contributors"
-      }).addTo(map);
+      });
+
+      const satellite = L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        {
+          attribution: "Tiles © Esri"
+        }
+      );
+
+      osm.addTo(map);
+
+      L.control.layers({ "OpenStreetMap": osm, "Satellite": satellite }).addTo(map);
 
       // 🧭 Add live location button
       L.control
@@ -153,16 +162,12 @@
           position: "topleft",
           flyTo: true,
           showPopup: true,
-          strings: {
-            title: "Show my location"
-          }
+          strings: { title: "Show my location" }
         })
         .addTo(map);
 
-      // 🧭 Add geocoder search
-      L.Control.geocoder({
-        defaultMarkGeocode: false
-      }).addTo(map);
+      // 🌍 Add geocoder (address search)
+      L.Control.geocoder({ defaultMarkGeocode: false }).addTo(map);
 
       // 🧩 PASTE YOUR INDEX.HTML GEOJSON CONTENT BELOW THIS LINE
       const geojsonData = {
@@ -141694,9 +141699,17 @@
 
       geoLayer = L.geoJSON(geojsonData, {
         onEachFeature: (feature, layer) => {
+          const p = feature.properties;
+          parcelIndex[p.Parcel_NO] = layer;
+
+          // Add to datalist
+          const option = document.createElement("option");
+          option.value = p.Parcel_NO;
+          parcelList.appendChild(option);
+
           layer.bindPopup(`
-            <b>Parcel No:</b> ${feature.properties.Parcel_NO}<br>
-            <b>Owner:</b> ${feature.properties.Owner}
+            <b>Parcel No:</b> ${p.Parcel_NO}<br>
+            <b>Owner:</b> ${p.Owner}
           `);
         },
         style: {
@@ -141708,31 +141721,24 @@
       map.fitBounds(geoLayer.getBounds());
     }
 
-    // 🧩 Parcel search function
+    // 🔍 Parcel search function
     window.searchParcel = function () {
       const query = searchInput.value.trim().toUpperCase();
       if (!query) return alert("Enter a Parcel_NO to search.");
 
-      let found = false;
-
-      geoLayer.eachLayer(layer => {
-        const parcelNo = layer.feature.properties.Parcel_NO?.toUpperCase();
-        if (parcelNo === query) {
-          map.fitBounds(layer.getBounds());
-          layer.openPopup();
-          found = true;
-        }
-      });
-
-      if (!found) {
+      const layer = parcelIndex[query];
+      if (layer) {
+        map.fitBounds(layer.getBounds());
+        layer.openPopup();
+      } else {
         alert("Parcel not found. Please check the Parcel_NO.");
       }
     };
 
+    // 🔐 Authentication controls
     window.login = function () {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
-
       signInWithEmailAndPassword(auth, email, password)
         .then(() => console.log("Login successful"))
         .catch(error => alert("Login failed: " + error.message));
