@@ -57,13 +57,20 @@
       position: absolute;
       bottom: 10px;
       right: 10px;
-      background-color: rgba(0,0,0,0.5);
+      background-color: rgba(0, 0, 0, 0.5);
       color: white;
       padding: 8px 15px;
       border-radius: 8px;
       font-size: 14px;
       z-index: 1000;
       text-align: right;
+      line-height: 1.4em;
+    }
+    .leaflet-control-geocoder {
+      position: absolute !important;
+      top: 10px;
+      right: 10px;
+      z-index: 1500;
     }
   </style>
 </head>
@@ -117,13 +124,12 @@
 
     function showUserInfo(email) {
       const infoDiv = document.getElementById("userInfo");
-      const date = new Date().toLocaleString();
-      infoDiv.innerHTML = `Welcome, ${email}<br>${date}`;
-      // live clock
-      setInterval(() => {
+      const updateClock = () => {
         const now = new Date().toLocaleString();
         infoDiv.innerHTML = `Welcome, ${email}<br>${now}`;
-      }, 1000);
+      };
+      updateClock();
+      setInterval(updateClock, 1000);
     }
 
     function initMap() {
@@ -143,9 +149,10 @@
       // Locate button
       L.control.locate({ position: "topleft", strings: { title: "Show me where I am" } }).addTo(map);
 
-      // Search box with auto-suggest
+      // Fixed Search with auto-suggest
       const geocoder = L.Control.geocoder({
-        defaultMarkGeocode: true
+        defaultMarkGeocode: true,
+        collapsed: false
       })
       .on('markgeocode', function(e) {
         map.fitBounds(e.geocode.bbox);
@@ -141677,6 +141684,7 @@
       }
     }
   ]
+
       };
 
       L.geoJSON(parcelData, {
