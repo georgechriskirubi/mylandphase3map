@@ -4,65 +4,90 @@
   <meta charset="utf-8">
   <title>Secure Mavoko Land Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
+
   <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <!-- Locate Control CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
-  <!-- Geocoder CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+
+  <!-- Leaflet Locate Control -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.css"
+  />
+  <script src="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.js"></script>
+
+  <!-- Leaflet Control Geocoder -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
+  />
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
   <style>
     body, html { margin: 0; height: 100%; }
-    #map { width: 100%; height: 100vh; }
-    #logout-btn {
+    #map { height: 100vh; width: 100%; display: none; }
+    #loginForm {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    #logoutBtn {
       position: fixed;
       top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: red;
+      right: 20px;
+      background: red;
       color: white;
       border: none;
-      padding: 10px 20px;
-      font-size: 16px;
-      border-radius: 6px;
+      padding: 8px 14px;
+      border-radius: 5px;
       cursor: pointer;
-      z-index: 1001;
+      display: none;
+      z-index: 1000;
     }
-    #login-form {
-      text-align: center;
-      margin-top: 150px;
+    #userInfo {
+      position: fixed;
+      top: 10px;
+      left: 20px;
+      color: #333;
+      background: white;
+      padding: 8px 14px;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      font-weight: bold;
+      display: none;
+      z-index: 1000;
     }
   </style>
 </head>
 <body>
+  <button id="logoutBtn">Logout</button>
+  <div id="userInfo"></div>
 
-  <div id="login-section">
-    <div id="login-form">
-      <h2>Secure Mavoko Land Map Login</h2>
-      <input type="email" id="email" placeholder="Email" required><br><br>
-      <input type="password" id="password" placeholder="Password" required><br><br>
-      <button id="login-btn">Login</button>
-      <p id="login-message" style="color:red;"></p>
-    </div>
+  <div id="loginForm">
+    <h2>Secure Mavoko Land Map Login</h2>
+    <input type="email" id="email" placeholder="Email" /><br>
+    <input type="password" id="password" placeholder="Password" /><br>
+    <button id="loginBtn">Login</button>
+    <p id="loginMsg" style="color:red;"></p>
   </div>
 
-  <div id="map" style="display:none;"></div>
-  <button id="logout-btn" style="display:none;">Logout</button>
+  <div id="map"></div>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <!-- Locate Control -->
-  <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
-  <!-- Geocoder -->
-  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-
-  <script>
+  <script type="module">
     // 🔥 Firebase Configuration
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+    import {
+      getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+    } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+
     const firebaseConfig = {
       apiKey: "AIzaSyAv9sckMh22FTjrnDQ0K4jxoMZ3alBRND8",
       authDomain: "my-land-phase3-2025.firebaseapp.com",
@@ -71,72 +96,80 @@
       messagingSenderId: "53046594855",
       appId: "1:53046594855:web:a6a8553bbb341f72376d02"
     };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
 
-    // 🔐 Login Logic
-    document.getElementById("login-btn").addEventListener("click", () => {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
 
-      auth.signInWithEmailAndPassword(email, password)
-        .then(() => {
-          document.getElementById("login-section").style.display = "none";
-          document.getElementById("map").style.display = "block";
-          document.getElementById("logout-btn").style.display = "block";
-          initMap();
-        })
-        .catch((error) => {
-          document.getElementById("login-message").innerText = error.message;
-        });
+    const loginForm = document.getElementById('loginForm');
+    const mapDiv = document.getElementById('map');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginMsg = document.getElementById('loginMsg');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const userInfo = document.getElementById('userInfo');
+
+    loginBtn.addEventListener('click', async () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        loginMsg.textContent = "";
+      } catch (error) {
+        loginMsg.textContent = "Login failed: " + error.message;
+      }
     });
 
-    // 🚪 Logout
-    document.getElementById("logout-btn").addEventListener("click", () => {
-      auth.signOut().then(() => location.reload());
+    logoutBtn.addEventListener('click', async () => {
+      await signOut(auth);
+    });
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        loginForm.style.display = 'none';
+        mapDiv.style.display = 'block';
+        logoutBtn.style.display = 'block';
+        userInfo.style.display = 'block';
+        userInfo.textContent = "Welcome, " + user.email;
+        initMap();
+      } else {
+        loginForm.style.display = 'flex';
+        mapDiv.style.display = 'none';
+        logoutBtn.style.display = 'none';
+        userInfo.style.display = 'none';
+      }
     });
 
     // 🗺️ Initialize Map
     function initMap() {
-      const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      const map = L.map('map').setView([-1.44, 37.00], 14);
+
+      // Base layers
+      const openStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; OpenStreetMap contributors'
-      });
+      }).addTo(map);
 
-      const satellite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
-        attribution: '&copy; Esri, Maxar, Earthstar Geographics'
-      });
-
-      const map = L.map("map", {
-        center: [-1.45, 37.0],
-        zoom: 14,
-        layers: [osm]
+      const satellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: '&copy; Google'
       });
 
       L.control.layers({
-        "OpenStreetMap": osm,
-        "Satellite (Esri)": satellite
+        "OpenStreetMap (Default)": openStreet,
+        "Satellite View": satellite
       }).addTo(map);
 
-      // Locate control
-      L.control.locate({
-        position: "topleft",
-        strings: { title: "Show me where I am" },
-        flyTo: true
-      }).addTo(map);
+      // 🧭 Locate Control
+      L.control.locate({ position: 'topleft', strings: { title: "Show my location" } }).addTo(map);
 
-      // Search control
-      const geocoder = L.Control.geocoder({
-        defaultMarkGeocode: false
-      })
-      .on("markgeocode", function(e) {
-        map.fitBounds(e.geocode.bbox);
-        L.marker(e.geocode.center).addTo(map)
-          .bindPopup(e.geocode.name).openPopup();
-      })
-      .addTo(map);
+      // 🔍 Search Control
+      L.Control.geocoder({ defaultMarkGeocode: false })
+        .on('markgeocode', function(e) {
+          map.fitBounds(e.geocode.bbox);
+        })
+        .addTo(map);
 
-      // 🧩 PASTE YOUR GEOJSON SCRIPT BELOW
+      // 🧩 PASTE YOUR GEOJSON DATA BELOW
       const geojsonData = {
   "type": "FeatureCollection",
   "features": [
@@ -141664,48 +141697,16 @@
 
       };
 
-      // Define default and highlight styles
-      const defaultStyle = {
-        color: "red",
-        weight: 2,
-        fillColor: "#ff6666",
-        fillOpacity: 0.4
-      };
-
-      const highlightStyle = {
-        color: "#ff0000",
-        weight: 3,
-        fillColor: "#ff3333",
-        fillOpacity: 0.7
-      };
-
-      function onEachFeature(feature, layer) {
-        layer.bindPopup(`
-          <b>Parcel:</b> ${feature.properties.Parcel_NO}<br>
-          <b>Owner:</b> ${feature.properties.Owner}
-        `);
-
-        // Highlight on hover
-        layer.on("mouseover", function () {
-          this.setStyle(highlightStyle);
-          this.bringToFront();
-        });
-
-        // Reset style on mouseout
-        layer.on("mouseout", function () {
-          geoLayer.resetStyle(this);
-        });
-
-        // Zoom and show popup on click
-        layer.on("click", function () {
-          map.fitBounds(this.getBounds());
-          this.openPopup();
-        });
-      }
-
+      // 🟥 Show polygons with red outline, no fill
       const geoLayer = L.geoJSON(geojsonData, {
-        style: defaultStyle,
-        onEachFeature: onEachFeature
+        style: {
+          color: "red",
+          weight: 2,
+          fillOpacity: 0 // Transparent fill
+        },
+        onEachFeature: (feature, layer) => {
+          layer.bindPopup(`<b>Parcel No:</b> ${feature.properties.Parcel_NO}`);
+        }
       }).addTo(map);
 
       map.fitBounds(geoLayer.getBounds());
