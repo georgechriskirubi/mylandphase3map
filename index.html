@@ -1,121 +1,68 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8">
   <title>Secure Mavoko Land Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  <!-- Leaflet Locate Control CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
+  <!-- Leaflet Geocoder CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
 
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
-    }
-    #map {
-      height: 100vh;
-      width: 100%;
-      display: none;
-    }
-    #loginDiv {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-    input {
-      margin: 5px;
-      padding: 10px;
-      width: 250px;
-    }
-    button {
+    body, html { margin: 0; height: 100%; }
+    #map { width: 100%; height: 100vh; }
+    #logout-btn {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: red;
+      color: white;
+      border: none;
       padding: 10px 20px;
-      background: #007bff;
-      border: none;
-      color: white;
+      font-size: 16px;
+      border-radius: 6px;
       cursor: pointer;
-      border-radius: 5px;
+      z-index: 1001;
     }
-    button:hover {
-      background: #0056b3;
-    }
-    #logoutBtn {
-      display: none;
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: red;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      cursor: pointer;
-      z-index: 1000;
-      border-radius: 5px;
-    }
-    #searchBox {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      z-index: 1000;
-      background: white;
-      border-radius: 5px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      padding: 5px;
-      display: none;
-    }
-    #parcelSearch {
-      padding: 5px;
-      width: 180px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    datalist {
-      max-height: 200px;
-      overflow-y: auto;
+    #login-form {
+      text-align: center;
+      margin-top: 150px;
     }
   </style>
 </head>
-
 <body>
-  <h2 id="appTitle" style="text-align:center;">Secure Mavoko Land Map</h2>
 
-  <div id="loginDiv">
-    <h3>Login</h3>
-    <input type="email" id="email" placeholder="Email" />
-    <input type="password" id="password" placeholder="Password" />
-    <button onclick="login()">Login</button>
+  <div id="login-section">
+    <div id="login-form">
+      <h2>Secure Mavoko Land Map Login</h2>
+      <input type="email" id="email" placeholder="Email" required><br><br>
+      <input type="password" id="password" placeholder="Password" required><br><br>
+      <button id="login-btn">Login</button>
+      <p id="login-message" style="color:red;"></p>
+    </div>
   </div>
 
-  <div id="searchBox">
-    <input type="text" id="parcelSearch" list="parcelList" placeholder="Search Parcel_NO..." />
-    <datalist id="parcelList"></datalist>
-    <button onclick="searchParcel()">Search</button>
-  </div>
-
-  <button id="logoutBtn" onclick="logout()">Logout</button>
-  <div id="map"></div>
-
-  <!-- Leaflet & Plugins -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-  <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
+  <div id="map" style="display:none;"></div>
+  <button id="logout-btn" style="display:none;">Logout</button>
 
   <!-- Firebase -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getAuth,
-      signInWithEmailAndPassword,
-      signOut,
-      onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet Locate Control -->
+  <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
+  <!-- Leaflet Geocoder -->
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+  <script>
+    // 🔥 Firebase Configuration
     const firebaseConfig = {
       apiKey: "AIzaSyAv9sckMh22FTjrnDQ0K4jxoMZ3alBRND8",
       authDomain: "my-land-phase3-2025.firebaseapp.com",
@@ -124,52 +71,76 @@
       messagingSenderId: "53046594855",
       appId: "1:53046594855:web:a6a8553bbb341f72376d02"
     };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+    // 🔐 Login Logic
+    const loginBtn = document.getElementById("login-btn");
+    loginBtn.addEventListener("click", () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
 
-    const loginDiv = document.getElementById("loginDiv");
-    const mapDiv = document.getElementById("map");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const searchBox = document.getElementById("searchBox");
-    const searchInput = document.getElementById("parcelSearch");
-    const parcelList = document.getElementById("parcelList");
+      auth.signInWithEmailAndPassword(email, password)
+        .then(() => {
+          document.getElementById("login-section").style.display = "none";
+          document.getElementById("map").style.display = "block";
+          document.getElementById("logout-btn").style.display = "block";
+          initMap();
+        })
+        .catch((error) => {
+          document.getElementById("login-message").innerText = error.message;
+        });
+    });
 
-    let map, geoLayer, parcelIndex = {};
+    // 🚪 Logout
+    document.getElementById("logout-btn").addEventListener("click", () => {
+      auth.signOut().then(() => location.reload());
+    });
 
+    // 🗺️ Initialize Map
     function initMap() {
-      map = L.map("map").setView([-1.45, 37.0], 13);
-
-      // 🗺️ Base layers
+      // Base Layers
       const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap contributors"
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
       });
 
-      const satellite = L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        {
-          attribution: "Tiles © Esri"
-        }
-      );
+      const satellite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+        attribution: '&copy; Esri, Maxar, Earthstar Geographics'
+      });
 
-      osm.addTo(map);
+      // Create map
+      const map = L.map("map", {
+        center: [-1.45, 37.0], // adjust to your area
+        zoom: 14,
+        layers: [osm] // default base
+      });
 
-      L.control.layers({ "OpenStreetMap": osm, "Satellite": satellite }).addTo(map);
+      // Layer control
+      L.control.layers({
+        "OpenStreetMap": osm,
+        "Satellite (Esri)": satellite
+      }).addTo(map);
 
-      // 🧭 Add live location button
-      L.control
-        .locate({
-          position: "topleft",
-          flyTo: true,
-          showPopup: true,
-          strings: { title: "Show my location" }
-        })
-        .addTo(map);
+      // Live location control
+      L.control.locate({
+        position: "topleft",
+        strings: { title: "Show me where I am" },
+        flyTo: true
+      }).addTo(map);
 
-      // 🌍 Add geocoder (address search)
-      L.Control.geocoder({ defaultMarkGeocode: false }).addTo(map);
+      // Search control with auto-suggest
+      const geocoder = L.Control.geocoder({
+        defaultMarkGeocode: false
+      })
+      .on("markgeocode", function(e) {
+        map.fitBounds(e.geocode.bbox);
+        L.marker(e.geocode.center).addTo(map)
+          .bindPopup(e.geocode.name).openPopup();
+      })
+      .addTo(map);
 
-      // 🧩 PASTE YOUR INDEX.HTML GEOJSON CONTENT BELOW THIS LINE
+      // 🧩 PASTE YOUR GEOJSON SCRIPT HERE
       const geojsonData = {
   "type": "FeatureCollection",
   "features": [
@@ -141697,71 +141668,15 @@
 
       };
 
-      geoLayer = L.geoJSON(geojsonData, {
+      const geoLayer = L.geoJSON(geojsonData, {
         onEachFeature: (feature, layer) => {
-          const p = feature.properties;
-          parcelIndex[p.Parcel_NO] = layer;
-
-          // Add to datalist
-          const option = document.createElement("option");
-          option.value = p.Parcel_NO;
-          parcelList.appendChild(option);
-
-          layer.bindPopup(`
-            <b>Parcel No:</b> ${p.Parcel_NO}<br>
-            <b>Owner:</b> ${p.Owner}
-          `);
+          layer.bindPopup(`<b>Parcel:</b> ${feature.properties.Parcel_NO}<br><b>Owner:</b> ${feature.properties.Owner}`);
         },
-        style: {
-          color: "blue",
-          weight: 2
-        }
+        style: { color: "#ff7800", weight: 2 }
       }).addTo(map);
 
       map.fitBounds(geoLayer.getBounds());
     }
-
-    // 🔍 Parcel search function
-    window.searchParcel = function () {
-      const query = searchInput.value.trim().toUpperCase();
-      if (!query) return alert("Enter a Parcel_NO to search.");
-
-      const layer = parcelIndex[query];
-      if (layer) {
-        map.fitBounds(layer.getBounds());
-        layer.openPopup();
-      } else {
-        alert("Parcel not found. Please check the Parcel_NO.");
-      }
-    };
-
-    // 🔐 Authentication controls
-    window.login = function () {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      signInWithEmailAndPassword(auth, email, password)
-        .then(() => console.log("Login successful"))
-        .catch(error => alert("Login failed: " + error.message));
-    };
-
-    window.logout = function () {
-      signOut(auth);
-    };
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        loginDiv.style.display = "none";
-        mapDiv.style.display = "block";
-        logoutBtn.style.display = "block";
-        searchBox.style.display = "block";
-        initMap();
-      } else {
-        loginDiv.style.display = "flex";
-        mapDiv.style.display = "none";
-        logoutBtn.style.display = "none";
-        searchBox.style.display = "none";
-      }
-    });
   </script>
 </body>
 </html>
