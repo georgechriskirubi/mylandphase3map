@@ -67,6 +67,23 @@
       z-index: 1000;
       border-radius: 5px;
     }
+    #searchBox {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      background: white;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      padding: 5px;
+      display: none;
+    }
+    #parcelSearch {
+      padding: 5px;
+      width: 180px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
   </style>
 </head>
 
@@ -78,6 +95,11 @@
     <input type="email" id="email" placeholder="Email" />
     <input type="password" id="password" placeholder="Password" />
     <button onclick="login()">Login</button>
+  </div>
+
+  <div id="searchBox">
+    <input type="text" id="parcelSearch" placeholder="Search Parcel_NO..." />
+    <button onclick="searchParcel()">Search</button>
   </div>
 
   <button id="logoutBtn" onclick="logout()">Logout</button>
@@ -113,8 +135,10 @@
     const loginDiv = document.getElementById("loginDiv");
     const mapDiv = document.getElementById("map");
     const logoutBtn = document.getElementById("logoutBtn");
+    const searchBox = document.getElementById("searchBox");
+    const searchInput = document.getElementById("parcelSearch");
 
-    let map;
+    let map, geoLayer;
 
     function initMap() {
       map = L.map("map").setView([-1.45, 37.0], 13);
@@ -123,20 +147,7 @@
         attribution: "© OpenStreetMap contributors"
       }).addTo(map);
 
-      // 🧩 Add Search Control
-      const geocoder = L.Control.geocoder({
-        defaultMarkGeocode: false
-      })
-        .on("markgeocode", function (e) {
-          map.fitBounds(e.geocode.bbox);
-          L.marker(e.geocode.center)
-            .addTo(map)
-            .bindPopup(e.geocode.name)
-            .openPopup();
-        })
-        .addTo(map);
-
-      // 🧭 Add Live Location Button
+      // 🧭 Add live location button
       L.control
         .locate({
           position: "topleft",
@@ -147,6 +158,11 @@
           }
         })
         .addTo(map);
+
+      // 🧭 Add geocoder search
+      L.Control.geocoder({
+        defaultMarkGeocode: false
+      }).addTo(map);
 
       // 🧩 PASTE YOUR INDEX.HTML GEOJSON CONTENT BELOW THIS LINE
       const geojsonData = {
@@ -141673,16 +141689,15 @@
       }
     }
   ]
+
       };
 
-      const geoLayer = L.geoJSON(geojsonData, {
+      geoLayer = L.geoJSON(geojsonData, {
         onEachFeature: (feature, layer) => {
-          if (feature.properties) {
-            layer.bindPopup(`
-              <b>Parcel No:</b> ${feature.properties.Parcel_NO}<br>
-              <b>Owner:</b> ${feature.properties.Owner}
-            `);
-          }
+          layer.bindPopup(`
+            <b>Parcel No:</b> ${feature.properties.Parcel_NO}<br>
+            <b>Owner:</b> ${feature.properties.Owner}
+          `);
         },
         style: {
           color: "blue",
@@ -141693,17 +141708,34 @@
       map.fitBounds(geoLayer.getBounds());
     }
 
+    // 🧩 Parcel search function
+    window.searchParcel = function () {
+      const query = searchInput.value.trim().toUpperCase();
+      if (!query) return alert("Enter a Parcel_NO to search.");
+
+      let found = false;
+
+      geoLayer.eachLayer(layer => {
+        const parcelNo = layer.feature.properties.Parcel_NO?.toUpperCase();
+        if (parcelNo === query) {
+          map.fitBounds(layer.getBounds());
+          layer.openPopup();
+          found = true;
+        }
+      });
+
+      if (!found) {
+        alert("Parcel not found. Please check the Parcel_NO.");
+      }
+    };
+
     window.login = function () {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
 
       signInWithEmailAndPassword(auth, email, password)
-        .then(() => {
-          console.log("Login successful");
-        })
-        .catch((error) => {
-          alert("Login failed: " + error.message);
-        });
+        .then(() => console.log("Login successful"))
+        .catch(error => alert("Login failed: " + error.message));
     };
 
     window.logout = function () {
@@ -141715,11 +141747,13 @@
         loginDiv.style.display = "none";
         mapDiv.style.display = "block";
         logoutBtn.style.display = "block";
+        searchBox.style.display = "block";
         initMap();
       } else {
         loginDiv.style.display = "flex";
         mapDiv.style.display = "none";
         logoutBtn.style.display = "none";
+        searchBox.style.display = "none";
       }
     });
   </script>
