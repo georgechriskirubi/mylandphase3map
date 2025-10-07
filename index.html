@@ -98,7 +98,6 @@
 
     // 🗺️ Initialize Map
     function initMap() {
-      // Base Layers
       const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: '&copy; OpenStreetMap contributors'
@@ -108,14 +107,12 @@
         attribution: '&copy; Esri, Maxar, Earthstar Geographics'
       });
 
-      // Create map
       const map = L.map("map", {
-        center: [-1.45, 37.0], // adjust to your area
+        center: [-1.45, 37.0],
         zoom: 14,
         layers: [osm]
       });
 
-      // Layer control
       L.control.layers({
         "OpenStreetMap": osm,
         "Satellite (Esri)": satellite
@@ -141667,19 +141664,48 @@
 
       };
 
+      // Define default and highlight styles
+      const defaultStyle = {
+        color: "red",
+        weight: 2,
+        fillColor: "#ff6666",
+        fillOpacity: 0.4
+      };
+
+      const highlightStyle = {
+        color: "#ff0000",
+        weight: 3,
+        fillColor: "#ff3333",
+        fillOpacity: 0.7
+      };
+
+      function onEachFeature(feature, layer) {
+        layer.bindPopup(`
+          <b>Parcel:</b> ${feature.properties.Parcel_NO}<br>
+          <b>Owner:</b> ${feature.properties.Owner}
+        `);
+
+        // Highlight on hover
+        layer.on("mouseover", function () {
+          this.setStyle(highlightStyle);
+          this.bringToFront();
+        });
+
+        // Reset style on mouseout
+        layer.on("mouseout", function () {
+          geoLayer.resetStyle(this);
+        });
+
+        // Zoom and show popup on click
+        layer.on("click", function () {
+          map.fitBounds(this.getBounds());
+          this.openPopup();
+        });
+      }
+
       const geoLayer = L.geoJSON(geojsonData, {
-        style: {
-          color: "red",          // Outline color
-          weight: 2,             // Outline thickness
-          fillColor: "#ff6666",  // Fill color (light red)
-          fillOpacity: 0.4       // Transparency
-        },
-        onEachFeature: (feature, layer) => {
-          layer.bindPopup(`
-            <b>Parcel:</b> ${feature.properties.Parcel_NO}<br>
-            <b>Owner:</b> ${feature.properties.Owner}
-          `);
-        }
+        style: defaultStyle,
+        onEachFeature: onEachFeature
       }).addTo(map);
 
       map.fitBounds(geoLayer.getBounds());
