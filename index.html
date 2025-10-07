@@ -30,10 +30,6 @@
       color: white;
     }
 
-    #login-section h2 {
-      margin-bottom: 20px;
-    }
-
     #login-section input {
       margin: 5px 0;
       padding: 10px;
@@ -99,15 +95,15 @@
     <div id="map"></div>
   </div>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
-
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
+  <!-- Firebase Modular SDK -->
   <script type="module">
-    // 🔥 Firebase Configuration
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    // 🔥 Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyAv9sckMh22FTjrnDQ0K4jxoMZ3alBRND8",
       authDomain: "my-land-phase3-2025.firebaseapp.com",
@@ -118,8 +114,8 @@
     };
 
     // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
 
     const loginSection = document.getElementById("login-section");
     const mapSection = document.getElementById("map-section");
@@ -127,38 +123,36 @@
     const logoutBtn = document.getElementById("logout-btn");
     const loginMessage = document.getElementById("login-message");
 
-    // LOGIN FUNCTION
+    // Login
     loginBtn.addEventListener("click", async () => {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
-
       try {
-        await auth.signInWithEmailAndPassword(email, password);
+        await signInWithEmailAndPassword(auth, email, password);
       } catch (error) {
         loginMessage.textContent = "Login failed: " + error.message;
       }
     });
 
-    // LOGOUT FUNCTION
+    // Logout
     logoutBtn.addEventListener("click", async () => {
-      await auth.signOut();
+      await signOut(auth);
     });
 
-    // AUTH STATE CHANGE
-    auth.onAuthStateChanged((user) => {
+    // Auth listener
+    onAuthStateChanged(auth, (user) => {
       if (user) {
         loginSection.style.display = "none";
         mapSection.style.display = "block";
         logoutBtn.style.display = "block";
 
-        // Initialize map once
         if (!window.mapInitialized) {
           const map = L.map('map').setView([-1.438, 37.012], 14);
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
           }).addTo(map);
 
-          // 🧩 PASTE YOUR GEOJSON DATA BELOW
+          // 🧩 EMBED YOUR GEOJSON DATA HERE
           const geojsonData = {
   "type": "FeatureCollection",
   "features": [
@@ -141683,22 +141677,18 @@
       }
     }
   ]
-}
+       };
 
-          // 🗺️ Add GeoJSON to the map
-          const geoLayer = L.geoJSON(geojsonData, {
+          // Add GeoJSON
+          const layer = L.geoJSON(geojsonData, {
+            style: { color: "#ff6600", weight: 2 },
             onEachFeature: (feature, layer) => {
               layer.bindPopup(`<b>Parcel No:</b> ${feature.properties.Parcel_NO}<br>
                                <b>Owner:</b> ${feature.properties.Owner}`);
-            },
-            style: {
-              color: "#ff7800",
-              weight: 2,
-              opacity: 0.65
             }
           }).addTo(map);
 
-          map.fitBounds(geoLayer.getBounds());
+          map.fitBounds(layer.getBounds());
           window.mapInitialized = true;
         }
       } else {
