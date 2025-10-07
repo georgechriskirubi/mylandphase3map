@@ -7,9 +7,9 @@
   
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <!-- Leaflet Locate Control CSS -->
+  <!-- Locate Control CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
-  <!-- Leaflet Geocoder CSS -->
+  <!-- Geocoder CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
 
   <style>
@@ -56,9 +56,9 @@
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <!-- Leaflet Locate Control -->
+  <!-- Locate Control -->
   <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
-  <!-- Leaflet Geocoder -->
+  <!-- Geocoder -->
   <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
   <script>
@@ -75,8 +75,7 @@
     const auth = firebase.auth();
 
     // 🔐 Login Logic
-    const loginBtn = document.getElementById("login-btn");
-    loginBtn.addEventListener("click", () => {
+    document.getElementById("login-btn").addEventListener("click", () => {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
 
@@ -113,7 +112,7 @@
       const map = L.map("map", {
         center: [-1.45, 37.0], // adjust to your area
         zoom: 14,
-        layers: [osm] // default base
+        layers: [osm]
       });
 
       // Layer control
@@ -122,14 +121,14 @@
         "Satellite (Esri)": satellite
       }).addTo(map);
 
-      // Live location control
+      // Locate control
       L.control.locate({
         position: "topleft",
         strings: { title: "Show me where I am" },
         flyTo: true
       }).addTo(map);
 
-      // Search control with auto-suggest
+      // Search control
       const geocoder = L.Control.geocoder({
         defaultMarkGeocode: false
       })
@@ -140,7 +139,7 @@
       })
       .addTo(map);
 
-      // 🧩 PASTE YOUR GEOJSON SCRIPT HERE
+      // 🧩 PASTE YOUR GEOJSON SCRIPT BELOW
       const geojsonData = {
   "type": "FeatureCollection",
   "features": [
@@ -141669,10 +141668,18 @@
       };
 
       const geoLayer = L.geoJSON(geojsonData, {
-        onEachFeature: (feature, layer) => {
-          layer.bindPopup(`<b>Parcel:</b> ${feature.properties.Parcel_NO}<br><b>Owner:</b> ${feature.properties.Owner}`);
+        style: {
+          color: "red",          // Outline color
+          weight: 2,             // Outline thickness
+          fillColor: "#ff6666",  // Fill color (light red)
+          fillOpacity: 0.4       // Transparency
         },
-        style: { color: "#ff7800", weight: 2 }
+        onEachFeature: (feature, layer) => {
+          layer.bindPopup(`
+            <b>Parcel:</b> ${feature.properties.Parcel_NO}<br>
+            <b>Owner:</b> ${feature.properties.Owner}
+          `);
+        }
       }).addTo(map);
 
       map.fitBounds(geoLayer.getBounds());
