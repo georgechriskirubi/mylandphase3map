@@ -1,36 +1,28 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <title>Secure Mavoko Land Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
-
-  <!-- Leaflet Locate Control -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.css"
-  />
+  <!-- Locate Control -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.css" />
   <script src="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.js"></script>
 
-  <!-- Leaflet Control Geocoder -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
-  />
+  <!-- Search / Geocoder -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
   <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
   <style>
-    body, html { margin: 0; height: 100%; }
+    html, body { height: 100%; margin: 0; }
     #map { height: 100vh; width: 100%; display: none; }
 
     #loginForm {
@@ -49,7 +41,7 @@
       color: white;
       border: none;
       padding: 8px 14px;
-      border-radius: 5px;
+      border-radius: 6px;
       cursor: pointer;
       display: none;
       z-index: 1000;
@@ -59,20 +51,19 @@
       position: fixed;
       top: 10px;
       left: 20px;
-      color: #333;
       background: white;
       padding: 8px 14px;
-      border-radius: 5px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
       font-weight: bold;
       display: none;
       z-index: 1000;
     }
 
     #dateTime {
+      display: block;
       font-size: 0.85rem;
       font-weight: normal;
-      display: block;
       color: #555;
     }
   </style>
@@ -91,13 +82,8 @@
 
   <div id="map"></div>
 
-  <script type="module">
-    // 🔥 Firebase Configuration
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import {
-      getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
-    } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-
+  <script>
+    // 🔥 Initialize Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyAv9sckMh22FTjrnDQ0K4jxoMZ3alBRND8",
       authDomain: "my-land-phase3-2025.firebaseapp.com",
@@ -107,88 +93,82 @@
       appId: "1:53046594855:web:a6a8553bbb341f72376d02"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
 
-    const loginForm = document.getElementById('loginForm');
-    const mapDiv = document.getElementById('map');
-    const loginBtn = document.getElementById('loginBtn');
-    const loginMsg = document.getElementById('loginMsg');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const userInfo = document.getElementById('userInfo');
+    const loginForm = document.getElementById("loginForm");
+    const mapDiv = document.getElementById("map");
+    const loginBtn = document.getElementById("loginBtn");
+    const loginMsg = document.getElementById("loginMsg");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const userInfo = document.getElementById("userInfo");
 
-    loginBtn.addEventListener('click', async () => {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-        loginMsg.textContent = "";
-      } catch (error) {
-        loginMsg.textContent = "Login failed: " + error.message;
-      }
+    loginBtn.addEventListener("click", () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      auth.signInWithEmailAndPassword(email, password)
+        .then(() => loginMsg.textContent = "")
+        .catch(err => loginMsg.textContent = "Login failed: " + err.message);
     });
 
-    logoutBtn.addEventListener('click', async () => {
-      await signOut(auth);
-    });
+    logoutBtn.addEventListener("click", () => auth.signOut());
 
-    onAuthStateChanged(auth, user => {
+    auth.onAuthStateChanged(user => {
       if (user) {
-        loginForm.style.display = 'none';
-        mapDiv.style.display = 'block';
-        logoutBtn.style.display = 'block';
-        userInfo.style.display = 'block';
-        
-        const now = new Date();
-        const dateTimeString = now.toLocaleString();
-        userInfo.innerHTML = `
-          Welcome, ${user.email}<br>
-          <span id="dateTime">${dateTimeString}</span>
-        `;
+        loginForm.style.display = "none";
+        mapDiv.style.display = "block";
+        logoutBtn.style.display = "block";
+        userInfo.style.display = "block";
 
+        const now = new Date();
+        userInfo.innerHTML = `Welcome, ${user.email}<br><span id="dateTime">${now.toLocaleString()}</span>`;
         initMap();
       } else {
-        loginForm.style.display = 'flex';
-        mapDiv.style.display = 'none';
-        logoutBtn.style.display = 'none';
-        userInfo.style.display = 'none';
+        loginForm.style.display = "flex";
+        mapDiv.style.display = "none";
+        logoutBtn.style.display = "none";
+        userInfo.style.display = "none";
       }
     });
 
-    // 🗺️ Initialize Map
+    // 🗺️ Map Initialization
     function initMap() {
-      const map = L.map('map').setView([-1.44, 37.00], 14);
+      const map = L.map("map").setView([-1.44, 37.00], 15);
 
-      // Base layers
-      const openStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors'
+        attribution: "© OpenStreetMap contributors"
       }).addTo(map);
 
-      const satellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+      const satellite = L.tileLayer("https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", {
         maxZoom: 20,
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-        attribution: '&copy; Google'
+        subdomains: ["mt0","mt1","mt2","mt3"],
+        attribution: "© Google"
       });
 
-      L.control.layers({
-        "OpenStreetMap (Default)": openStreet,
-        "Satellite View": satellite
-      }).addTo(map);
+      L.control.layers(
+        { "OpenStreetMap (Default)": osm, "Satellite View": satellite },
+        null,
+        { position: "topleft" }
+      ).addTo(map);
 
       // 🧭 Locate Control
-      L.control.locate({ position: 'topleft', strings: { title: "Show my location" } }).addTo(map);
+      L.control.locate({
+        position: "topleft",
+        strings: { title: "Show my location" },
+        flyTo: true
+      }).addTo(map);
 
       // 🔍 Search Control
       const geocoder = L.Control.geocoder({
         defaultMarkGeocode: false
       })
-      .on('markgeocode', function(e) {
+      .on("markgeocode", function(e) {
         map.fitBounds(e.geocode.bbox);
       })
       .addTo(map);
 
-      // 🧩 PASTE YOUR GEOJSON DATA BELOW
+      // 🧩 Embed your GeoJSON data here
       const geojsonData = {
   "type": "FeatureCollection",
   "features": [
@@ -141715,8 +141695,8 @@
   ]
       };
 
-      // 🟥 Show polygons with red outline only (transparent inside)
-      const geoLayer = L.geoJSON(geojsonData, {
+      // 🟥 Red outline, transparent fill
+      const parcels = L.geoJSON(geojsonData, {
         style: {
           color: "red",
           weight: 2,
@@ -141728,7 +141708,7 @@
         }
       }).addTo(map);
 
-      map.fitBounds(geoLayer.getBounds());
+      map.fitBounds(parcels.getBounds());
     }
   </script>
 </body>
