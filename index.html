@@ -1,89 +1,89 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8" />
   <title>Secure Mavoko Land Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <!-- Locate Control -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.css" />
-  <script src="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.js"></script>
-
-  <!-- Search / Geocoder -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.css"
+  />
 
   <style>
-    html, body { height: 100%; margin: 0; }
-    #map { height: 100vh; width: 100%; display: none; }
-
-    #loginForm {
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+    #loginDiv {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      height: 100%;
+      background: linear-gradient(135deg, #007bff, #6610f2);
+      color: white;
     }
-
-    #logoutBtn {
-      position: fixed;
+    #map {
+      height: 100%;
+      display: none;
+    }
+    .logout-btn {
+      position: absolute;
       top: 10px;
-      right: 20px;
-      background: red;
+      left: 10px;
+      background-color: red;
       color: white;
       border: none;
       padding: 8px 14px;
-      border-radius: 6px;
+      border-radius: 5px;
       cursor: pointer;
-      display: none;
       z-index: 1000;
-    }
-
-    #userInfo {
-      position: fixed;
-      top: 10px;
-      left: 20px;
-      background: white;
-      padding: 8px 14px;
-      border-radius: 6px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
       font-weight: bold;
-      display: none;
-      z-index: 1000;
     }
-
-    #dateTime {
-      display: block;
-      font-size: 0.85rem;
-      font-weight: normal;
-      color: #555;
+    .user-info {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background-color: rgba(0,0,0,0.5);
+      color: white;
+      padding: 8px 15px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 1000;
+      text-align: right;
     }
   </style>
 </head>
 <body>
-  <button id="logoutBtn">Logout</button>
-  <div id="userInfo"></div>
-
-  <div id="loginForm">
+  <div id="loginDiv">
     <h2>Secure Mavoko Land Map Login</h2>
-    <input type="email" id="email" placeholder="Email" /><br>
-    <input type="password" id="password" placeholder="Password" /><br>
-    <button id="loginBtn">Login</button>
-    <p id="loginMsg" style="color:red;"></p>
+    <input type="email" id="email" placeholder="Email" style="margin:5px; padding:8px;">
+    <input type="password" id="password" placeholder="Password" style="margin:5px; padding:8px;">
+    <button onclick="login()" style="margin-top:10px; padding:8px 14px;">Login</button>
   </div>
 
+  <button class="logout-btn" id="logoutBtn" style="display:none;" onclick="logout()">Logout</button>
   <div id="map"></div>
+  <div class="user-info" id="userInfo" style="display:none;"></div>
 
-  <script>
-    // 🔥 Initialize Firebase
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
+
     const firebaseConfig = {
       apiKey: "AIzaSyAv9sckMh22FTjrnDQ0K4jxoMZ3alBRND8",
       authDomain: "my-land-phase3-2025.firebaseapp.com",
@@ -93,83 +93,67 @@
       appId: "1:53046594855:web:a6a8553bbb341f72376d02"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
 
-    const loginForm = document.getElementById("loginForm");
-    const mapDiv = document.getElementById("map");
-    const loginBtn = document.getElementById("loginBtn");
-    const loginMsg = document.getElementById("loginMsg");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const userInfo = document.getElementById("userInfo");
-
-    loginBtn.addEventListener("click", () => {
+    function login() {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
-      auth.signInWithEmailAndPassword(email, password)
-        .then(() => loginMsg.textContent = "")
-        .catch(err => loginMsg.textContent = "Login failed: " + err.message);
-    });
+      signInWithEmailAndPassword(auth, email, password)
+        .then(() => {
+          document.getElementById("loginDiv").style.display = "none";
+          document.getElementById("map").style.display = "block";
+          document.getElementById("logoutBtn").style.display = "block";
+          document.getElementById("userInfo").style.display = "block";
+          initMap();
+          showUserInfo(email);
+        })
+        .catch((error) => alert(error.message));
+    }
 
-    logoutBtn.addEventListener("click", () => auth.signOut());
+    function logout() {
+      signOut(auth).then(() => location.reload());
+    }
 
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        loginForm.style.display = "none";
-        mapDiv.style.display = "block";
-        logoutBtn.style.display = "block";
-        userInfo.style.display = "block";
+    function showUserInfo(email) {
+      const infoDiv = document.getElementById("userInfo");
+      const date = new Date().toLocaleString();
+      infoDiv.innerHTML = `Welcome, ${email}<br>${date}`;
+      // live clock
+      setInterval(() => {
+        const now = new Date().toLocaleString();
+        infoDiv.innerHTML = `Welcome, ${email}<br>${now}`;
+      }, 1000);
+    }
 
-        const now = new Date();
-        userInfo.innerHTML = `Welcome, ${user.email}<br><span id="dateTime">${now.toLocaleString()}</span>`;
-        initMap();
-      } else {
-        loginForm.style.display = "flex";
-        mapDiv.style.display = "none";
-        logoutBtn.style.display = "none";
-        userInfo.style.display = "none";
-      }
-    });
-
-    // 🗺️ Map Initialization
     function initMap() {
-      const map = L.map("map").setView([-1.44, 37.00], 15);
+      const map = L.map("map").setView([-1.45, 37.0], 13);
 
       const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
         attribution: "© OpenStreetMap contributors"
       }).addTo(map);
 
-      const satellite = L.tileLayer("https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", {
-        maxZoom: 20,
-        subdomains: ["mt0","mt1","mt2","mt3"],
-        attribution: "© Google"
-      });
+      const satellite = L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        { attribution: "Tiles © Esri" }
+      );
 
-      L.control.layers(
-        { "OpenStreetMap (Default)": osm, "Satellite View": satellite },
-        null,
-        { position: "topleft" }
-      ).addTo(map);
+      L.control.layers({ "OpenStreetMap": osm, "Satellite": satellite }).addTo(map);
 
-      // 🧭 Locate Control
-      L.control.locate({
-        position: "topleft",
-        strings: { title: "Show my location" },
-        flyTo: true
-      }).addTo(map);
+      // Locate button
+      L.control.locate({ position: "topleft", strings: { title: "Show me where I am" } }).addTo(map);
 
-      // 🔍 Search Control
+      // Search box with auto-suggest
       const geocoder = L.Control.geocoder({
-        defaultMarkGeocode: false
+        defaultMarkGeocode: true
       })
-      .on("markgeocode", function(e) {
+      .on('markgeocode', function(e) {
         map.fitBounds(e.geocode.bbox);
       })
       .addTo(map);
 
-      // 🧩 Embed your GeoJSON data here
-      const geojsonData = {
+      // 🧩 EMBED YOUR GEOJSON BELOW (transparent fill, red outline)
+      const parcelData = {
   "type": "FeatureCollection",
   "features": [
     {
@@ -141695,21 +141679,33 @@
   ]
       };
 
-      // 🟥 Red outline, transparent fill
-      const parcels = L.geoJSON(geojsonData, {
+      L.geoJSON(parcelData, {
         style: {
           color: "red",
           weight: 2,
-          fillColor: "transparent",
           fillOpacity: 0
         },
-        onEachFeature: (feature, layer) => {
-          layer.bindPopup(`<b>Parcel No:</b> ${feature.properties.Parcel_NO}`);
+        onEachFeature: function (feature, layer) {
+          layer.bindPopup("Parcel: " + feature.properties.Parcel_NO);
         }
       }).addTo(map);
-
-      map.fitBounds(parcels.getBounds());
     }
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById("loginDiv").style.display = "none";
+        document.getElementById("map").style.display = "block";
+        document.getElementById("logoutBtn").style.display = "block";
+        document.getElementById("userInfo").style.display = "block";
+        initMap();
+        showUserInfo(user.email);
+      }
+    });
   </script>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
 </body>
 </html>
