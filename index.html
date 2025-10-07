@@ -1,96 +1,124 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8">
   <title>Secure Mavoko Land Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
-  />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.css"
-  />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Locate Control -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.css" />
+  <script src="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.js"></script>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 
   <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: Arial, sans-serif;
-      overflow: hidden;
-    }
-    #loginDiv {
+    html, body { height: 100%; margin: 0; font-family: Arial, sans-serif; }
+    #map { height: 100vh; width: 100%; display: none; }
+
+    #loginForm {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100%;
-      background: linear-gradient(135deg, #007bff, #6610f2);
-      color: white;
+      height: 100vh;
     }
-    #map {
-      height: 100%;
-      display: none;
-    }
-    .logout-btn {
-      position: absolute;
+
+    #logoutBtn {
+      position: fixed;
       top: 10px;
-      left: 10px;
-      background-color: red;
+      right: 20px;
+      background: red;
       color: white;
       border: none;
       padding: 8px 14px;
-      border-radius: 5px;
+      border-radius: 6px;
       cursor: pointer;
+      display: none;
       z-index: 1000;
-      font-weight: bold;
     }
-    .user-info {
-      position: absolute;
+
+    #infoBar {
+      position: fixed;
       bottom: 10px;
-      right: 10px;
-      background-color: rgba(0, 0, 0, 0.5);
-      color: white;
-      padding: 8px 15px;
+      right: 15px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px 15px;
       border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
       font-size: 14px;
       z-index: 1000;
-      text-align: right;
-      line-height: 1.4em;
+      display: none;
     }
-    .leaflet-control-geocoder {
-      position: absolute !important;
-      top: 10px;
-      right: 10px;
-      z-index: 1500;
+
+    #searchBox {
+      position: fixed;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: white;
+      padding: 8px;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      width: 250px;
+      display: none;
+    }
+
+    #searchInput {
+      width: 100%;
+      padding: 6px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    #suggestions {
+      background: white;
+      border: 1px solid #ccc;
+      border-top: none;
+      max-height: 120px;
+      overflow-y: auto;
+      display: none;
+      margin-top: 2px;
+      border-radius: 0 0 4px 4px;
+    }
+
+    .suggestion-item {
+      padding: 6px;
+      cursor: pointer;
+    }
+
+    .suggestion-item:hover {
+      background-color: #f0f0f0;
     }
   </style>
 </head>
 <body>
-  <div id="loginDiv">
+  <button id="logoutBtn">Logout</button>
+  <div id="infoBar"></div>
+
+  <div id="loginForm">
     <h2>Secure Mavoko Land Map Login</h2>
-    <input type="email" id="email" placeholder="Email" style="margin:5px; padding:8px;">
-    <input type="password" id="password" placeholder="Password" style="margin:5px; padding:8px;">
-    <button onclick="login()" style="margin-top:10px; padding:8px 14px;">Login</button>
+    <input type="email" id="email" placeholder="Email" /><br>
+    <input type="password" id="password" placeholder="Password" /><br>
+    <button id="loginBtn">Login</button>
+    <p id="loginMsg" style="color:red;"></p>
   </div>
 
-  <button class="logout-btn" id="logoutBtn" style="display:none;" onclick="logout()">Logout</button>
+  <div id="searchBox">
+    <input type="text" id="searchInput" placeholder="Search Parcel No..." autocomplete="off" />
+    <div id="suggestions"></div>
+  </div>
+
   <div id="map"></div>
-  <div class="user-info" id="userInfo" style="display:none;"></div>
 
-  <!-- Firebase -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
-
+  <script>
+    // 🔥 Initialize Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyAv9sckMh22FTjrnDQ0K4jxoMZ3alBRND8",
       authDomain: "my-land-phase3-2025.firebaseapp.com",
@@ -100,67 +128,85 @@
       appId: "1:53046594855:web:a6a8553bbb341f72376d02"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
 
-    function login() {
+    const loginForm = document.getElementById("loginForm");
+    const mapDiv = document.getElementById("map");
+    const loginBtn = document.getElementById("loginBtn");
+    const loginMsg = document.getElementById("loginMsg");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const infoBar = document.getElementById("infoBar");
+    const searchBox = document.getElementById("searchBox");
+    const searchInput = document.getElementById("searchInput");
+    const suggestions = document.getElementById("suggestions");
+
+    loginBtn.addEventListener("click", () => {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
-      signInWithEmailAndPassword(auth, email, password)
-        .then(() => {
-          document.getElementById("loginDiv").style.display = "none";
-          document.getElementById("map").style.display = "block";
-          document.getElementById("logoutBtn").style.display = "block";
-          document.getElementById("userInfo").style.display = "block";
-          initMap();
-          showUserInfo(email);
-        })
-        .catch((error) => alert(error.message));
-    }
+      auth.signInWithEmailAndPassword(email, password)
+        .then(() => loginMsg.textContent = "")
+        .catch(err => loginMsg.textContent = "Login failed: " + err.message);
+    });
 
-    function logout() {
-      signOut(auth).then(() => location.reload());
-    }
+    logoutBtn.addEventListener("click", () => auth.signOut());
 
-    function showUserInfo(email) {
-      const infoDiv = document.getElementById("userInfo");
-      const updateClock = () => {
-        const now = new Date().toLocaleString();
-        infoDiv.innerHTML = `Welcome, ${email}<br>${now}`;
-      };
-      updateClock();
-      setInterval(updateClock, 1000);
-    }
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        loginForm.style.display = "none";
+        mapDiv.style.display = "block";
+        logoutBtn.style.display = "block";
+        infoBar.style.display = "block";
+        searchBox.style.display = "block";
 
+        // 🕒 live date/time update
+        function updateTime() {
+          const now = new Date();
+          infoBar.innerHTML = `Welcome, ${user.email}<br><span>${now.toLocaleString()}</span>`;
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        initMap();
+      } else {
+        loginForm.style.display = "flex";
+        mapDiv.style.display = "none";
+        logoutBtn.style.display = "none";
+        infoBar.style.display = "none";
+        searchBox.style.display = "none";
+      }
+    });
+
+    // 🗺️ Map Initialization
     function initMap() {
-      const map = L.map("map").setView([-1.45, 37.0], 13);
+      const map = L.map("map").setView([-1.44, 37.00], 15);
 
       const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
         attribution: "© OpenStreetMap contributors"
       }).addTo(map);
 
-      const satellite = L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        { attribution: "Tiles © Esri" }
-      );
+      const satellite = L.tileLayer("https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", {
+        maxZoom: 20,
+        subdomains: ["mt0","mt1","mt2","mt3"],
+        attribution: "© Google"
+      });
 
-      L.control.layers({ "OpenStreetMap": osm, "Satellite": satellite }).addTo(map);
+      L.control.layers(
+        { "OpenStreetMap (Default)": osm, "Satellite View": satellite },
+        null,
+        { position: "topleft" }
+      ).addTo(map);
 
-      // Locate button
-      L.control.locate({ position: "topleft", strings: { title: "Show me where I am" } }).addTo(map);
+      // 🧭 Locate Control
+      L.control.locate({
+        position: "topleft",
+        strings: { title: "Show my location" },
+        flyTo: true
+      }).addTo(map);
 
-      // Fixed Search with auto-suggest
-      const geocoder = L.Control.geocoder({
-        defaultMarkGeocode: true,
-        collapsed: false
-      })
-      .on('markgeocode', function(e) {
-        map.fitBounds(e.geocode.bbox);
-      })
-      .addTo(map);
-
-      // 🧩 EMBED YOUR GEOJSON BELOW (transparent fill, red outline)
-      const parcelData = {
+      // 🧩 GeoJSON Data
+      const geojsonData = {
   "type": "FeatureCollection",
   "features": [
     {
@@ -141687,33 +141733,59 @@
 
       };
 
-      L.geoJSON(parcelData, {
+      // 🟥 Parcel Layer
+      const parcels = L.geoJSON(geojsonData, {
         style: {
           color: "red",
           weight: 2,
+          fillColor: "transparent",
           fillOpacity: 0
         },
-        onEachFeature: function (feature, layer) {
-          layer.bindPopup("Parcel: " + feature.properties.Parcel_NO);
+        onEachFeature: (feature, layer) => {
+          layer.bindPopup(`<b>Parcel No:</b> ${feature.properties.Parcel_NO}`);
         }
       }).addTo(map);
-    }
 
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        document.getElementById("loginDiv").style.display = "none";
-        document.getElementById("map").style.display = "block";
-        document.getElementById("logoutBtn").style.display = "block";
-        document.getElementById("userInfo").style.display = "block";
-        initMap();
-        showUserInfo(user.email);
+      map.fitBounds(parcels.getBounds());
+
+      // 🔍 Search + Auto-suggest for Parcel_NO
+      const parcelList = geojsonData.features.map(f => f.properties.Parcel_NO);
+      searchInput.addEventListener("input", function() {
+        const query = this.value.toLowerCase();
+        suggestions.innerHTML = "";
+        if (query.length === 0) {
+          suggestions.style.display = "none";
+          return;
+        }
+        const matches = parcelList.filter(p => p.toLowerCase().includes(query));
+        if (matches.length === 0) {
+          suggestions.style.display = "none";
+          return;
+        }
+        matches.forEach(p => {
+          const item = document.createElement("div");
+          item.textContent = p;
+          item.className = "suggestion-item";
+          item.onclick = () => {
+            searchInput.value = p;
+            suggestions.style.display = "none";
+            zoomToParcel(p);
+          };
+          suggestions.appendChild(item);
+        });
+        suggestions.style.display = "block";
+      });
+
+      // 🔎 Zoom to selected parcel
+      function zoomToParcel(parcelNo) {
+        parcels.eachLayer(layer => {
+          if (layer.feature.properties.Parcel_NO === parcelNo) {
+            map.fitBounds(layer.getBounds());
+            layer.openPopup();
+          }
+        });
       }
-    });
+    }
   </script>
-
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-  <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
 </body>
 </html>
