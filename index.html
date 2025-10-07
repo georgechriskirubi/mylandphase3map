@@ -6,36 +6,74 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
 
-  <!-- Locate & Geocoder -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.css"/>
+  <!-- Leaflet Locate Control -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.css"
+  />
   <script src="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"/>
+
+  <!-- Leaflet Control Geocoder -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
+  />
   <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
   <style>
-    html, body { margin: 0; height: 100%; }
+    body, html { margin: 0; height: 100%; }
     #map { height: 100vh; width: 100%; display: none; }
+
     #loginForm {
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: center; height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
     }
+
     #logoutBtn {
-      position: fixed; top: 10px; right: 20px;
-      background: red; color: white; border: none;
-      padding: 8px 14px; border-radius: 5px; cursor: pointer;
-      display: none; z-index: 1000;
+      position: fixed;
+      top: 10px;
+      right: 20px;
+      background: red;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 5px;
+      cursor: pointer;
+      display: none;
+      z-index: 1000;
     }
+
     #userInfo {
-      position: fixed; top: 10px; left: 20px;
-      background: white; color: #333; padding: 8px 14px;
-      border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      font-weight: bold; display: none; z-index: 1000;
+      position: fixed;
+      top: 10px;
+      left: 20px;
+      color: #333;
+      background: white;
+      padding: 8px 14px;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      font-weight: bold;
+      display: none;
+      z-index: 1000;
+    }
+
+    #dateTime {
+      font-size: 0.85rem;
+      font-weight: normal;
+      display: block;
+      color: #555;
     }
   </style>
 </head>
@@ -45,8 +83,8 @@
 
   <div id="loginForm">
     <h2>Secure Mavoko Land Map Login</h2>
-    <input type="email" id="email" placeholder="Email"><br>
-    <input type="password" id="password" placeholder="Password"><br>
+    <input type="email" id="email" placeholder="Email" /><br>
+    <input type="password" id="password" placeholder="Password" /><br>
     <button id="loginBtn">Login</button>
     <p id="loginMsg" style="color:red;"></p>
   </div>
@@ -54,7 +92,7 @@
   <div id="map"></div>
 
   <script type="module">
-    // --- Firebase Config ---
+    // 🔥 Firebase Configuration
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
     import {
       getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -79,67 +117,78 @@
     const logoutBtn = document.getElementById('logoutBtn');
     const userInfo = document.getElementById('userInfo');
 
-    // --- Login ---
     loginBtn.addEventListener('click', async () => {
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value.trim();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
       try {
         await signInWithEmailAndPassword(auth, email, password);
         loginMsg.textContent = "";
-      } catch (err) {
-        loginMsg.textContent = "Login failed: " + err.message;
+      } catch (error) {
+        loginMsg.textContent = "Login failed: " + error.message;
       }
     });
 
-    // --- Logout ---
-    logoutBtn.addEventListener('click', async () => await signOut(auth));
+    logoutBtn.addEventListener('click', async () => {
+      await signOut(auth);
+    });
 
-    // --- Auth State Change ---
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, user => {
       if (user) {
-        loginForm.style.display = "none";
-        mapDiv.style.display = "block";
-        logoutBtn.style.display = "block";
-        userInfo.style.display = "block";
-        userInfo.textContent = "Welcome, " + (user.email || "User");
+        loginForm.style.display = 'none';
+        mapDiv.style.display = 'block';
+        logoutBtn.style.display = 'block';
+        userInfo.style.display = 'block';
+        
+        const now = new Date();
+        const dateTimeString = now.toLocaleString();
+        userInfo.innerHTML = `
+          Welcome, ${user.email}<br>
+          <span id="dateTime">${dateTimeString}</span>
+        `;
+
         initMap();
       } else {
-        loginForm.style.display = "flex";
-        mapDiv.style.display = "none";
-        logoutBtn.style.display = "none";
-        userInfo.style.display = "none";
+        loginForm.style.display = 'flex';
+        mapDiv.style.display = 'none';
+        logoutBtn.style.display = 'none';
+        userInfo.style.display = 'none';
       }
     });
 
-    // --- Map Initialization ---
+    // 🗺️ Initialize Map
     function initMap() {
-      const map = L.map("map").setView([-1.44, 37.00], 14);
+      const map = L.map('map').setView([-1.44, 37.00], 14);
 
-      const openStreet = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19, attribution: "&copy; OpenStreetMap contributors"
+      // Base layers
+      const openStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
       }).addTo(map);
 
-      const satellite = L.tileLayer("https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", {
-        maxZoom: 20, subdomains: ["mt0", "mt1", "mt2", "mt3"],
-        attribution: "&copy; Google"
+      const satellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: '&copy; Google'
       });
 
-      L.control.layers(
-        { "OpenStreetMap (Default)": openStreet, "Satellite View": satellite }
-      ).addTo(map);
-
-      // 🔍 Search
-      L.Control.geocoder({ defaultMarkGeocode: false })
-        .on("markgeocode", e => map.fitBounds(e.geocode.bbox))
-        .addTo(map);
-
-      // 📍 Locate
-      L.control.locate({
-        position: "topleft",
-        strings: { title: "Show my location" }
+      L.control.layers({
+        "OpenStreetMap (Default)": openStreet,
+        "Satellite View": satellite
       }).addTo(map);
 
-      // --- 🧩 PASTE YOUR GEOJSON BELOW ---
+      // 🧭 Locate Control
+      L.control.locate({ position: 'topleft', strings: { title: "Show my location" } }).addTo(map);
+
+      // 🔍 Search Control
+      const geocoder = L.Control.geocoder({
+        defaultMarkGeocode: false
+      })
+      .on('markgeocode', function(e) {
+        map.fitBounds(e.geocode.bbox);
+      })
+      .addTo(map);
+
+      // 🧩 PASTE YOUR GEOJSON DATA BELOW
       const geojsonData = {
   "type": "FeatureCollection",
   "features": [
@@ -141664,15 +141713,13 @@
       }
     }
   ]
-
       };
 
-      // 🟥 Red outline only (transparent fill)
+      // 🟥 Show polygons with red outline only (transparent inside)
       const geoLayer = L.geoJSON(geojsonData, {
         style: {
           color: "red",
           weight: 2,
-          opacity: 1,
           fillColor: "transparent",
           fillOpacity: 0
         },
