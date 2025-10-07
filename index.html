@@ -5,12 +5,12 @@
   <title>Secure Mavoko Land Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <!-- Locate Control -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.css" />
   <script src="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.js"></script>
 
   <!-- Firebase -->
@@ -18,16 +18,16 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 
   <style>
-    html, body { margin: 0; height: 100%; }
+    html, body { height: 100%; margin: 0; }
     #map { height: 100vh; width: 100%; display: none; }
 
     /* Login */
     #loginForm {
-      height: 100vh;
       display: flex;
       flex-direction: column;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
+      height: 100vh;
     }
 
     #logoutBtn {
@@ -44,11 +44,12 @@
       z-index: 1000;
     }
 
+    /* Bottom Right Info */
     #userInfo {
       position: fixed;
       bottom: 10px;
       right: 15px;
-      background: rgba(255,255,255,0.9);
+      background: rgba(255, 255, 255, 0.9);
       padding: 10px 14px;
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.25);
@@ -61,11 +62,11 @@
     #dateTime {
       display: block;
       font-size: 0.85rem;
-      color: #444;
       font-weight: normal;
+      color: #444;
     }
 
-    /* Search container */
+    /* Collapsible Search */
     #searchContainer {
       position: fixed;
       top: 10px;
@@ -73,6 +74,7 @@
       transform: translateX(-50%);
       z-index: 1000;
       display: none;
+      text-align: center;
     }
 
     #searchToggle {
@@ -84,11 +86,7 @@
       height: 40px;
       cursor: pointer;
       font-size: 18px;
-      transition: background 0.3s;
-    }
-
-    #searchToggle:hover {
-      background: #f1f1f1;
+      transition: 0.3s;
     }
 
     #searchBox {
@@ -98,11 +96,10 @@
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       padding: 8px;
-      text-align: center;
     }
 
     #searchInput {
-      width: 230px;
+      width: 220px;
       padding: 6px;
       border: 1px solid #ccc;
       border-radius: 4px;
@@ -112,12 +109,11 @@
     #suggestions {
       max-height: 150px;
       overflow-y: auto;
+      border-top: 1px solid #ccc;
       margin-top: 5px;
-      border-top: 1px solid #ddd;
       display: none;
-      text-align: left;
       background: #fff;
-      border-radius: 6px;
+      border-radius: 4px;
     }
 
     #suggestions div {
@@ -126,14 +122,18 @@
     }
 
     #suggestions div:hover {
-      background: #f0f0f0;
+      background: #eee;
     }
   </style>
 </head>
 <body>
+  <!-- Logout -->
   <button id="logoutBtn">Logout</button>
+
+  <!-- User Info -->
   <div id="userInfo"></div>
 
+  <!-- Login -->
   <div id="loginForm">
     <h2>Secure Mavoko Land Map Login</h2>
     <input type="email" id="email" placeholder="Email"><br>
@@ -142,8 +142,10 @@
     <p id="loginMsg" style="color:red;"></p>
   </div>
 
+  <!-- Map -->
   <div id="map"></div>
 
+  <!-- Search -->
   <div id="searchContainer">
     <button id="searchToggle">🔍</button>
     <div id="searchBox">
@@ -153,7 +155,7 @@
   </div>
 
   <script>
-    // 🔥 Firebase Config
+    // Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyAv9sckMh22FTjrnDQ0K4jxoMZ3alBRND8",
       authDomain: "my-land-phase3-2025.firebaseapp.com",
@@ -177,7 +179,7 @@
     const searchInput = document.getElementById("searchInput");
     const suggestions = document.getElementById("suggestions");
 
-    // 🔐 Login
+    // Login
     loginBtn.addEventListener("click", () => {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
@@ -186,10 +188,10 @@
         .catch(err => loginMsg.textContent = "Login failed: " + err.message);
     });
 
-    // 🚪 Logout
+    // Logout
     logoutBtn.addEventListener("click", () => auth.signOut());
 
-    // 👤 Auth State
+    // Auth Listener
     auth.onAuthStateChanged(user => {
       if (user) {
         loginForm.style.display = "none";
@@ -207,20 +209,15 @@
       }
     });
 
-    // 🗺️ Initialize Map
+    // Initialize Map
     function initMap(userEmail) {
       const map = L.map("map").setView([-1.44, 37.00], 15);
-      const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19, attribution: "© OpenStreetMap"
-      }).addTo(map);
+      const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-      const satellite = L.tileLayer("https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", {
-        maxZoom: 20, subdomains: ["mt0","mt1","mt2","mt3"], attribution: "© Google"
-      });
+      // Locate control
+      L.control.locate({ position: "topleft", flyTo: true }).addTo(map);
 
-      L.control.layers({ "OpenStreetMap": osm, "Satellite": satellite }).addTo(map);
-      L.control.locate({ flyTo: true }).addTo(map);
-
+      // Sample parcels
       const geojsonData = {
   "type": "FeatureCollection",
   "features": [
@@ -141745,69 +141742,65 @@
       }
     }
   ]
-
       };
 
       const parcelsLayer = L.geoJSON(geojsonData, {
-        style: { color: "red", weight: 2, fillOpacity: 0.2 },
+        style: { color: "red", weight: 2, fillOpacity: 0 },
         onEachFeature: (feature, layer) => layer.bindPopup(`<b>Parcel No:</b> ${feature.properties.Parcel_NO}`)
       }).addTo(map);
 
       map.fitBounds(parcelsLayer.getBounds());
+      const parcels = geojsonData.features.map(f => f.properties.Parcel_NO);
 
-      const parcelList = geojsonData.features.map(f => f.properties.Parcel_NO);
-
-      // 🔍 Collapsible search toggle
+      // Collapsible toggle
       let searchOpen = false;
       searchToggle.onclick = () => {
         searchOpen = !searchOpen;
         searchBox.style.display = searchOpen ? "block" : "none";
-        if (searchOpen) {
-          searchInput.focus();
-        } else {
-          suggestions.style.display = "none";
-        }
+        if (searchOpen) searchInput.focus();
       };
 
-      // Auto-suggest working properly
+      // Auto-suggest
       searchInput.addEventListener("input", () => {
-        const query = searchInput.value.trim().toLowerCase();
+        const value = searchInput.value.trim().toLowerCase();
         suggestions.innerHTML = "";
-        if (!query) {
+        if (!value) { suggestions.style.display = "none"; return; }
+
+        const matches = parcels.filter(p => p.toLowerCase().includes(value));
+        if (matches.length) {
+          matches.forEach(match => {
+            const div = document.createElement("div");
+            div.textContent = match;
+            div.onclick = () => { searchInput.value = match; suggestions.style.display = "none"; zoomToParcel(match); };
+            suggestions.appendChild(div);
+          });
+          suggestions.style.display = "block";
+        } else suggestions.style.display = "none";
+      });
+
+      // Search on Enter key
+      searchInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const val = searchInput.value.trim();
+          if (val) zoomToParcel(val);
           suggestions.style.display = "none";
-          return;
         }
-
-        const matches = parcelList.filter(p => p.toLowerCase().includes(query));
-        if (matches.length === 0) {
-          suggestions.style.display = "none";
-          return;
-        }
-
-        matches.forEach(match => {
-          const div = document.createElement("div");
-          div.textContent = match;
-          div.onclick = () => {
-            searchInput.value = match;
-            suggestions.style.display = "none";
-            zoomToParcel(match);
-          };
-          suggestions.appendChild(div);
-        });
-
-        suggestions.style.display = "block";
       });
 
       function zoomToParcel(parcelNo) {
+        let found = false;
         parcelsLayer.eachLayer(layer => {
-          if (layer.feature.properties.Parcel_NO === parcelNo) {
-            map.fitBounds(layer.getBounds(), { maxZoom: 18 });
+          if (layer.feature.properties.Parcel_NO.toLowerCase() === parcelNo.toLowerCase()) {
+            map.fitBounds(layer.getBounds());
             layer.openPopup();
+            found = true;
           }
         });
+        if (!found) alert("Parcel not found!");
       }
 
-      // ⏰ Live time
+      // Live time
       function updateTime() {
         const now = new Date();
         userInfo.innerHTML = `Welcome, ${userEmail}<br><span id="dateTime">${now.toLocaleString()}</span>`;
