@@ -1,144 +1,109 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8" />
   <title>Secure Mavoko Land Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Leaflet CSS & JS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <!-- Locate Control -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.css" />
-  <script src="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.js"></script>
-
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 
   <style>
-    html, body { height: 100%; margin: 0; }
-    #map { height: 100vh; width: 100%; display: none; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+    }
 
-    #loginForm {
+    #login-section, #map-section {
+      display: none;
+    }
+
+    #login-section {
       display: flex;
-      flex-direction: column;
+      height: 100vh;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      flex-direction: column;
+      background: linear-gradient(to bottom right, #00695c, #004d40);
+      color: white;
     }
 
-    #logoutBtn {
+    #login-section input {
+      margin: 5px 0;
+      padding: 10px;
+      width: 250px;
+      border: none;
+      border-radius: 5px;
+    }
+
+    #login-section button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      border: none;
+      background: #26a69a;
+      color: white;
+      font-weight: bold;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #login-section button:hover {
+      background: #00796b;
+    }
+
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+
+    #logout-btn {
       position: fixed;
-      top: 10px;
-      right: 20px;
-      background: red;
+      top: 15px;
+      right: 15px;
+      background: #d32f2f;
       color: white;
       border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
+      border-radius: 50px;
+      padding: 10px 20px;
       cursor: pointer;
       display: none;
       z-index: 1000;
-    }
-
-    #userInfo {
-      position: fixed;
-      bottom: 10px;
-      right: 15px;
-      background: rgba(255, 255, 255, 0.9);
-      padding: 10px 14px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
       font-weight: bold;
-      font-size: 0.9rem;
-      display: none;
-      z-index: 1000;
     }
 
-    #dateTime { display: block; font-size: 0.85rem; color: #444; }
-
-    /* Collapsible search */
-    #searchContainer {
-      position: fixed;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 1000;
-      display: none;
+    #logout-btn:hover {
+      background: #b71c1c;
     }
-
-    #searchToggle {
-      background: white;
-      border: none;
-      border-radius: 50%;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-      width: 40px;
-      height: 40px;
-      cursor: pointer;
-      font-size: 18px;
-    }
-
-    #searchBox {
-      display: none;
-      background: white;
-      margin-top: 6px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      padding: 6px;
-      text-align: center;
-    }
-
-    #searchInput {
-      width: 220px;
-      padding: 6px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      outline: none;
-    }
-
-    #suggestions {
-      max-height: 150px;
-      overflow-y: auto;
-      border-top: 1px solid #ccc;
-      margin-top: 5px;
-      display: none;
-      background: #fff;
-    }
-
-    #suggestions div {
-      padding: 6px;
-      cursor: pointer;
-    }
-
-    #suggestions div:hover { background: #eee; }
   </style>
 </head>
+
 <body>
-  <button id="logoutBtn">Logout</button>
-  <div id="userInfo"></div>
-
-  <div id="loginForm">
+  <!-- 🔒 LOGIN SECTION -->
+  <div id="login-section">
     <h2>Secure Mavoko Land Map Login</h2>
-    <input type="email" id="email" placeholder="Email" /><br>
-    <input type="password" id="password" placeholder="Password" /><br>
-    <button id="loginBtn">Login</button>
-    <p id="loginMsg" style="color:red;"></p>
+    <input type="email" id="email" placeholder="Enter your email">
+    <input type="password" id="password" placeholder="Enter your password">
+    <button id="login-btn">Login</button>
+    <p id="login-message"></p>
   </div>
 
-  <div id="map"></div>
-
-  <div id="searchContainer">
-    <button id="searchToggle">🔍</button>
-    <div id="searchBox">
-      <input type="text" id="searchInput" placeholder="Search Parcel No..." />
-      <div id="suggestions"></div>
-    </div>
+  <!-- 🗺️ MAP SECTION -->
+  <div id="map-section">
+    <button id="logout-btn">Logout</button>
+    <div id="map"></div>
   </div>
 
-  <script>
-    // Firebase Config
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- Firebase Modular SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    // 🔥 Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyAv9sckMh22FTjrnDQ0K4jxoMZ3alBRND8",
       authDomain: "my-land-phase3-2025.firebaseapp.com",
@@ -147,70 +112,48 @@
       messagingSenderId: "53046594855",
       appId: "1:53046594855:web:a6a8553bbb341f72376d02"
     };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
 
-    const loginForm = document.getElementById("loginForm");
-    const mapDiv = document.getElementById("map");
-    const loginBtn = document.getElementById("loginBtn");
-    const loginMsg = document.getElementById("loginMsg");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const userInfo = document.getElementById("userInfo");
-    const searchContainer = document.getElementById("searchContainer");
-    const searchToggle = document.getElementById("searchToggle");
-    const searchBox = document.getElementById("searchBox");
-    const searchInput = document.getElementById("searchInput");
-    const suggestions = document.getElementById("suggestions");
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const loginSection = document.getElementById("login-section");
+    const mapSection = document.getElementById("map-section");
+    const loginBtn = document.getElementById("login-btn");
+    const logoutBtn = document.getElementById("logout-btn");
+    const loginMessage = document.getElementById("login-message");
 
     // Login
-    loginBtn.addEventListener("click", () => {
+    loginBtn.addEventListener("click", async () => {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
-      auth.signInWithEmailAndPassword(email, password)
-        .then(() => loginMsg.textContent = "")
-        .catch(err => loginMsg.textContent = "Login failed: " + err.message);
-    });
-
-    // Logout
-    logoutBtn.addEventListener("click", () => auth.signOut());
-
-    // Auth Listener
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        loginForm.style.display = "none";
-        mapDiv.style.display = "block";
-        logoutBtn.style.display = "block";
-        userInfo.style.display = "block";
-        searchContainer.style.display = "block";
-        initMap(user.email);
-      } else {
-        loginForm.style.display = "flex";
-        mapDiv.style.display = "none";
-        logoutBtn.style.display = "none";
-        userInfo.style.display = "none";
-        searchContainer.style.display = "none";
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (error) {
+        loginMessage.textContent = "Login failed: " + error.message;
       }
     });
 
-    // Initialize Map
-    function initMap(userEmail) {
-      const map = L.map("map").setView([-1.44, 37.00], 15);
+    // Logout
+    logoutBtn.addEventListener("click", async () => {
+      await signOut(auth);
+    });
 
-      const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: "© OpenStreetMap"
-      }).addTo(map);
+    // Auth listener
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        loginSection.style.display = "none";
+        mapSection.style.display = "block";
+        logoutBtn.style.display = "block";
 
-      const satellite = L.tileLayer("https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", {
-        maxZoom: 20,
-        subdomains: ["mt0","mt1","mt2","mt3"],
-        attribution: "© Google"
-      });
+        if (!window.mapInitialized) {
+          const map = L.map('map').setView([-1.438, 37.012], 14);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+          }).addTo(map);
 
-      L.control.layers({ "OpenStreetMap": osm, "Satellite": satellite }).addTo(map);
-      L.control.locate({ position: "topleft", flyTo: true }).addTo(map);
-
-      const geojsonData = {
+          // 🧩 EMBED YOUR GEOJSON DATA HERE
+          const geojsonData = {
   "type": "FeatureCollection",
   "features": [
     {
@@ -141734,75 +141677,26 @@
       }
     }
   ]
+       };
 
-      };
+          // Add GeoJSON
+          const layer = L.geoJSON(geojsonData, {
+            style: { color: "#ff6600", weight: 2 },
+            onEachFeature: (feature, layer) => {
+              layer.bindPopup(`<b>Parcel No:</b> ${feature.properties.Parcel_NO}<br>
+                               <b>Owner:</b> ${feature.properties.Owner}`);
+            }
+          }).addTo(map);
 
-      const parcelsLayer = L.geoJSON(geojsonData, {
-        style: { color: "red", weight: 2, fillOpacity: 0 },
-        onEachFeature: (feature, layer) => {
-          layer.bindPopup(`<b>Parcel No:</b> ${feature.properties.Parcel_NO}`);
+          map.fitBounds(layer.getBounds());
+          window.mapInitialized = true;
         }
-      }).addTo(map);
-      map.fitBounds(parcelsLayer.getBounds());
-
-      const parcels = geojsonData.features.map(f => f.properties.Parcel_NO);
-
-      // Collapsible Search Button
-      let searchOpen = false;
-      searchToggle.onclick = () => {
-        searchOpen = !searchOpen;
-        searchBox.style.display = searchOpen ? "block" : "none";
-        if (searchOpen) searchInput.focus();
-      };
-
-      // ✅ Fixed Auto-Suggest Logic
-      searchInput.addEventListener("input", () => {
-        const value = searchInput.value.trim().toLowerCase();
-        suggestions.innerHTML = "";
-        if (!value) { suggestions.style.display = "none"; return; }
-
-        const matches = parcels.filter(p => p.toLowerCase().includes(value));
-        if (matches.length) {
-          matches.forEach(match => {
-            const div = document.createElement("div");
-            div.textContent = match;
-            div.onclick = () => {
-              searchInput.value = match;
-              suggestions.style.display = "none";
-              zoomToParcel(match);
-            };
-            suggestions.appendChild(div);
-          });
-          suggestions.style.display = "block";
-        } else {
-          suggestions.style.display = "none";
-        }
-      });
-
-      // Ensure suggestions hide when clicking outside
-      document.addEventListener("click", e => {
-        if (!searchBox.contains(e.target) && e.target !== searchToggle) {
-          suggestions.style.display = "none";
-        }
-      });
-
-      function zoomToParcel(parcelNo) {
-        parcelsLayer.eachLayer(layer => {
-          if (layer.feature.properties.Parcel_NO === parcelNo) {
-            map.fitBounds(layer.getBounds(), { maxZoom: 18 });
-            layer.openPopup();
-          }
-        });
+      } else {
+        mapSection.style.display = "none";
+        logoutBtn.style.display = "none";
+        loginSection.style.display = "flex";
       }
-
-      // Live Time
-      function updateTime() {
-        const now = new Date();
-        userInfo.innerHTML = `Welcome, ${userEmail}<br><span id="dateTime">${now.toLocaleString()}</span>`;
-      }
-      updateTime();
-      setInterval(updateTime, 1000);
-    }
+    });
   </script>
 </body>
 </html>
