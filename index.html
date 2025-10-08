@@ -5,13 +5,17 @@
   <title>Secure Mavoko Land Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <!-- Locate Control -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.css" />
   <script src="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.js"></script>
+
+  <!-- Search Control with Auto-suggest -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-search@3.0.9/dist/leaflet-search.min.css" />
+  <script src="https://unpkg.com/leaflet-search@3.0.9/dist/leaflet-search.min.js"></script>
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
@@ -21,7 +25,6 @@
     html, body { height: 100%; margin: 0; }
     #map { height: 100vh; width: 100%; display: none; }
 
-    /* Login form */
     #loginForm {
       display: flex;
       flex-direction: column;
@@ -34,7 +37,7 @@
       position: fixed;
       top: 10px;
       right: 20px;
-      background: #c0392b;
+      background: red;
       color: white;
       border: none;
       padding: 8px 14px;
@@ -44,95 +47,47 @@
       z-index: 1000;
     }
 
-    /* Bottom-right user info */
+    /* 👇 User info moved to bottom-right corner */
     #userInfo {
       position: fixed;
       bottom: 10px;
       right: 20px;
       background: rgba(255, 255, 255, 0.9);
-      padding: 8px 14px;
+      padding: 10px 14px;
       border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
       font-weight: bold;
-      display: none;
+      font-size: 0.9rem;
       z-index: 1000;
-      text-align: right;
+      display: none;
     }
 
     #dateTime {
       display: block;
-      font-size: 0.9rem;
+      font-size: 0.8rem;
       font-weight: normal;
-      color: #555;
-    }
-
-    /* Search bar styling */
-    #searchContainer {
-      position: fixed;
-      top: 10px;
-      left: 20px;
-      z-index: 1000;
-      display: none;
-      background: white;
-      padding: 8px 10px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-      width: 220px;
-    }
-
-    #parcelSearch {
-      width: 100%;
-      padding: 6px;
-      border: 1px solid #aaa;
-      border-radius: 4px;
-      box-sizing: border-box;
-    }
-
-    #suggestions {
-      background: white;
-      border: 1px solid #aaa;
-      border-top: none;
-      max-height: 150px;
-      overflow-y: auto;
-      border-radius: 0 0 6px 6px;
-      display: none;
-      position: absolute;
-      width: 220px;
-    }
-
-    #suggestions div {
-      padding: 6px;
-      cursor: pointer;
-    }
-
-    #suggestions div:hover {
-      background-color: #f0f0f0;
+      color: #444;
     }
   </style>
 </head>
 <body>
-
   <button id="logoutBtn">Logout</button>
   <div id="userInfo"></div>
 
+  <!-- 🔐 Login Form -->
   <div id="loginForm">
     <h2>Secure Mavoko Land Map Login</h2>
-    <input type="email" id="email" placeholder="Email"><br>
-    <input type="password" id="password" placeholder="Password"><br>
+    <input type="email" id="email" placeholder="Email" /><br>
+    <input type="password" id="password" placeholder="Password" /><br>
     <button id="loginBtn">Login</button>
     <p id="loginMsg" style="color:red;"></p>
   </div>
 
-  <!-- Search -->
-  <div id="searchContainer">
-    <input type="text" id="parcelSearch" placeholder="Search Parcel No...">
-    <div id="suggestions"></div>
-  </div>
-
+  <!-- 🗺️ Map -->
   <div id="map"></div>
 
   <script>
-    // 🔥 Firebase Config
+    // 🔥 Firebase Configuration
     const firebaseConfig = {
       apiKey: "AIzaSyAv9sckMh22FTjrnDQ0K4jxoMZ3alBRND8",
       authDomain: "my-land-phase3-2025.firebaseapp.com",
@@ -141,6 +96,7 @@
       messagingSenderId: "53046594855",
       appId: "1:53046594855:web:a6a8553bbb341f72376d02"
     };
+
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
 
@@ -150,8 +106,8 @@
     const loginMsg = document.getElementById("loginMsg");
     const logoutBtn = document.getElementById("logoutBtn");
     const userInfo = document.getElementById("userInfo");
-    const searchContainer = document.getElementById("searchContainer");
 
+    // 🧭 Login Handling
     loginBtn.addEventListener("click", () => {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
@@ -162,52 +118,62 @@
 
     logoutBtn.addEventListener("click", () => auth.signOut());
 
-    // Live clock
-    function updateClock() {
-      const now = new Date();
-      const clock = document.getElementById("dateTime");
-      if (clock) clock.textContent = now.toLocaleString();
-    }
-    setInterval(updateClock, 1000);
-
-    // Auth listener
+    // 🔄 Auth State Change
     auth.onAuthStateChanged(user => {
       if (user) {
         loginForm.style.display = "none";
         mapDiv.style.display = "block";
         logoutBtn.style.display = "block";
         userInfo.style.display = "block";
-        searchContainer.style.display = "block";
-
         userInfo.innerHTML = `Welcome, ${user.email}<br><span id="dateTime"></span>`;
-        updateClock();
+        startClock();
         initMap();
       } else {
         loginForm.style.display = "flex";
         mapDiv.style.display = "none";
         logoutBtn.style.display = "none";
         userInfo.style.display = "none";
-        searchContainer.style.display = "none";
       }
     });
 
-    // 🗺️ Initialize map
+    // ⏰ Live Time Updater
+    function startClock() {
+      const dtElem = document.getElementById("dateTime");
+      setInterval(() => {
+        const now = new Date();
+        dtElem.textContent = now.toLocaleString();
+      }, 1000);
+    }
+
+    // 🗺️ Initialize Map
     function initMap() {
       const map = L.map("map").setView([-1.44, 37.00], 15);
 
       const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19, attribution: "© OpenStreetMap"
+        maxZoom: 19,
+        attribution: "© OpenStreetMap contributors"
       }).addTo(map);
 
       const satellite = L.tileLayer("https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", {
-        maxZoom: 20, subdomains: ["mt0","mt1","mt2","mt3"], attribution: "© Google"
+        maxZoom: 20,
+        subdomains: ["mt0","mt1","mt2","mt3"],
+        attribution: "© Google"
       });
 
-      L.control.layers({ "OSM": osm, "Satellite": satellite }, null, { position: "topleft" }).addTo(map);
+      L.control.layers(
+        { "OpenStreetMap (Default)": osm, "Satellite View": satellite },
+        null,
+        { position: "topleft" }
+      ).addTo(map);
 
-      L.control.locate({ position: "topleft", flyTo: true }).addTo(map);
+      // 📍 Locate Control
+      L.control.locate({
+        position: "topleft",
+        strings: { title: "Show my location" },
+        flyTo: true
+      }).addTo(map);
 
-      // Example GeoJSON
+      // 🗂️ Example GeoJSON (replace with your full data)
       const geojsonData = {
   "type": "FeatureCollection",
   "features": [
@@ -141735,39 +141701,33 @@
 
       };
 
-      const parcelLayer = L.geoJSON(geojsonData, {
-        style: { color: "red", weight: 2, fillColor: "transparent", fillOpacity: 0 },
-        onEachFeature: (feature, layer) => layer.bindPopup(`<b>Parcel No:</b> ${feature.properties.Parcel_NO}`)
+      // 🟥 Style & Popup
+      const geoLayer = L.geoJSON(geojsonData, {
+        style: {
+          color: "red",
+          weight: 2,
+          fillColor: "transparent",
+          fillOpacity: 0
+        },
+        onEachFeature: (feature, layer) => {
+          layer.bindPopup(`<b>Parcel No:</b> ${feature.properties.Parcel_NO}`);
+        }
       }).addTo(map);
 
-      map.fitBounds(parcelLayer.getBounds());
+      map.fitBounds(geoLayer.getBounds());
 
-      // 🔍 Auto-suggest
-      const parcels = [];
-      parcelLayer.eachLayer(l => parcels.push({ name: l.feature.properties.Parcel_NO, layer: l }));
-
-      const input = document.getElementById("parcelSearch");
-      const suggestions = document.getElementById("suggestions");
-
-      input.addEventListener("input", () => {
-        const val = input.value.trim().toLowerCase();
-        suggestions.innerHTML = "";
-        if (!val) { suggestions.style.display = "none"; return; }
-
-        const matched = parcels.filter(p => p.name.toLowerCase().includes(val));
-        matched.forEach(m => {
-          const div = document.createElement("div");
-          div.textContent = m.name;
-          div.onclick = () => {
-            map.fitBounds(m.layer.getBounds());
-            m.layer.openPopup();
-            input.value = m.name;
-            suggestions.style.display = "none";
-          };
-          suggestions.appendChild(div);
-        });
-        suggestions.style.display = matched.length ? "block" : "none";
+      // 🔍 Add Search Control with Auto-Suggest
+      const searchControl = new L.Control.Search({
+        layer: geoLayer,
+        propertyName: "Parcel_NO",
+        initial: false,
+        zoom: 18,
+        marker: false,
+        moveToLocation: function(latlng, title, map) {
+          map.setView(latlng, 18);
+        }
       });
+      map.addControl(searchControl);
     }
   </script>
 </body>
