@@ -13,10 +13,6 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.css" />
   <script src="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.js"></script>
 
-  <!-- Leaflet Search Plugin -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-search@3.0.9/dist/leaflet-search.min.css" />
-  <script src="https://unpkg.com/leaflet-search@3.0.9/dist/leaflet-search.min.js"></script>
-
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
@@ -144,13 +140,13 @@
   <div id="searchContainer">
     <button id="searchToggle">🔍</button>
     <div id="searchBox">
-      <input type="text" id="searchInput" placeholder="Search Parcel No..." />
+      <input type="text" id="searchInput" placeholder="Search Parcel No..." autocomplete="off" />
       <div id="suggestions"></div>
     </div>
   </div>
 
   <script>
-    // 🔥 Initialize Firebase
+    // Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyAv9sckMh22FTjrnDQ0K4jxoMZ3alBRND8",
       authDomain: "my-land-phase3-2025.firebaseapp.com",
@@ -162,7 +158,6 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
 
-    // 🔐 Authentication and UI handling
     const loginForm = document.getElementById("loginForm");
     const mapDiv = document.getElementById("map");
     const loginBtn = document.getElementById("loginBtn");
@@ -175,6 +170,7 @@
     const searchInput = document.getElementById("searchInput");
     const suggestions = document.getElementById("suggestions");
 
+    // Login
     loginBtn.addEventListener("click", () => {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
@@ -202,10 +198,8 @@
       }
     });
 
-    // 🗺️ Map setup
-    let map, parcelsLayer;
     function initMap(userEmail) {
-      map = L.map("map").setView([-1.44, 37.00], 15);
+      const map = L.map("map").setView([-1.44, 37.00], 15);
 
       const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
@@ -218,90 +212,10 @@
         attribution: "© Google"
       });
 
-      L.control.layers(
-        { "OpenStreetMap": osm, "Satellite": satellite },
-        null, { position: "topleft" }
-      ).addTo(map);
+      L.control.layers({ "OpenStreetMap": osm, "Satellite": satellite }).addTo(map);
+      L.control.locate({ position: "topleft", flyTo: true }).addTo(map);
 
-      L.control.locate({ position: "topleft", strings: { title: "Show my location" }, flyTo: true }).addTo(map);
-
-      // 🕒 Live time
-      function updateTime() {
-        const now = new Date();
-        userInfo.innerHTML = `Welcome, ${userEmail}<br><span id="dateTime">${now.toLocaleString()}</span>`;
-      }
-      updateTime();
-      setInterval(updateTime, 1000);
-    }
-
-    // 📦 Add parcels to map
-    function addParcels(geojsonData) {
-      if (parcelsLayer) map.removeLayer(parcelsLayer);
-
-      parcelsLayer = L.geoJSON(geojsonData, {
-        style: { color: "red", weight: 2, fillOpacity: 0 },
-        onEachFeature: (feature, layer) => {
-          layer.bindPopup(`<b>Parcel No:</b> ${feature.properties.Parcel_NO}`);
-        }
-      }).addTo(map);
-
-      map.fitBounds(parcelsLayer.getBounds());
-
-      const parcels = geojsonData.features.map(f => f.properties.Parcel_NO);
-
-      // Collapsible search
-      let searchOpen = false;
-      searchToggle.onclick = (e) => {
-        e.stopPropagation();
-        searchOpen = !searchOpen;
-        searchBox.style.display = searchOpen ? "block" : "none";
-        if (searchOpen) searchInput.focus();
-      };
-
-      document.addEventListener("click", (e) => {
-        if (searchOpen && !searchContainer.contains(e.target)) {
-          searchBox.style.display = "none";
-          suggestions.style.display = "none";
-          searchOpen = false;
-        }
-      });
-
-      // Auto-suggest logic
-      searchInput.addEventListener("input", () => {
-        const value = searchInput.value.trim().toLowerCase();
-        suggestions.innerHTML = "";
-        if (!value) { suggestions.style.display = "none"; return; }
-
-        const matches = parcels.filter(p => p.toLowerCase().includes(value));
-        if (matches.length) {
-          matches.forEach(match => {
-            const div = document.createElement("div");
-            div.textContent = match;
-            div.onclick = () => {
-              searchInput.value = match;
-              suggestions.style.display = "none";
-              zoomToParcel(match);
-            };
-            suggestions.appendChild(div);
-          });
-          suggestions.style.display = "block";
-        } else {
-          suggestions.style.display = "none";
-        }
-      });
-
-      // Zoom to selected parcel
-      function zoomToParcel(parcelNo) {
-        parcelsLayer.eachLayer(layer => {
-          if (layer.feature.properties.Parcel_NO === parcelNo) {
-            map.fitBounds(layer.getBounds());
-            layer.openPopup();
-          }
-        });
-      }
-    }
-
-   const geojsonData = {
+      const geojsonData = {
   "type": "FeatureCollection",
   "features": [
     {
@@ -141826,8 +141740,86 @@
     }
   ]
 
-};
-addParcels(geojsonData);
+      };
 
+      const parcelsLayer = L.geoJSON(geojsonData, {
+        style: { color: "red", weight: 2, fillOpacity: 0 },
+        onEachFeature: (feature, layer) => {
+          layer.bindPopup(`<b>Parcel No:</b> ${feature.properties.Parcel_NO}`);
+        }
+      }).addTo(map);
+
+      map.fitBounds(parcelsLayer.getBounds());
+      const parcels = geojsonData.features.map(f => f.properties.Parcel_NO);
+
+      // ---- FIXED SEARCH SECTION ----
+      let searchOpen = false;
+
+      // Toggle visibility
+      searchToggle.onclick = (e) => {
+        e.stopPropagation();
+        searchOpen = !searchOpen;
+        searchBox.style.display = searchOpen ? "block" : "none";
+        if (searchOpen) {
+          searchInput.focus();
+          suggestions.innerHTML = "";
+          suggestions.style.display = "none";
+        }
+      };
+
+      // Suggestion logic
+      searchInput.addEventListener("input", () => {
+        const query = searchInput.value.trim().toLowerCase();
+        suggestions.innerHTML = "";
+        if (!query) {
+          suggestions.style.display = "none";
+          return;
+        }
+
+        const matches = parcels.filter(p => p.toLowerCase().includes(query));
+        if (matches.length > 0) {
+          matches.forEach(match => {
+            const div = document.createElement("div");
+            div.textContent = match;
+            div.onclick = () => {
+              searchInput.value = match;
+              suggestions.style.display = "none";
+              zoomToParcel(match);
+            };
+            suggestions.appendChild(div);
+          });
+          suggestions.style.display = "block";
+        } else {
+          suggestions.style.display = "none";
+        }
+      });
+
+      // Hide suggestions when clicking outside
+      document.addEventListener("click", (e) => {
+        if (!searchContainer.contains(e.target)) {
+          suggestions.style.display = "none";
+        }
+      });
+
+      function zoomToParcel(parcelNo) {
+        parcelsLayer.eachLayer(layer => {
+          if (layer.feature.properties.Parcel_NO === parcelNo) {
+            map.fitBounds(layer.getBounds());
+            layer.openPopup();
+          }
+        });
+      }
+
+      // ---- END FIXED SEARCH SECTION ----
+
+      // Live Time
+      function updateTime() {
+        const now = new Date();
+        userInfo.innerHTML = `Welcome, ${userEmail}<br><span id="dateTime">${now.toLocaleString()}</span>`;
+      }
+      updateTime();
+      setInterval(updateTime, 1000);
+    }
+  </script>
 </body>
 </html>
