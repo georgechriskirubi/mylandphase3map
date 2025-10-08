@@ -199,6 +199,7 @@
         logoutBtn.style.display = "none";
         userInfo.style.display = "none";
         searchContainer.style.display = "none";
+      }
     });
 
     // 🗺️ Map setup
@@ -236,26 +237,6 @@
     // 📦 Add parcels to map
     function addParcels(geojsonData) {
       if (parcelsLayer) map.removeLayer(parcelsLayer);
-    }
-
-    // Automatically add parcels after map is initialized
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        loginForm.style.display = "none";
-        mapDiv.style.display = "block";
-        logoutBtn.style.display = "block";
-        userInfo.style.display = "block";
-        searchContainer.style.display = "block";
-        initMap(user.email);
-        addParcels(geojsonData); // <-- Add this line to load parcels
-      } else {
-        loginForm.style.display = "flex";
-        mapDiv.style.display = "none";
-        logoutBtn.style.display = "none";
-        userInfo.style.display = "none";
-        searchContainer.style.display = "none";
-      }
-    });
 
       parcelsLayer = L.geoJSON(geojsonData, {
         style: { color: "red", weight: 2, fillOpacity: 0 },
@@ -320,7 +301,7 @@
       }
     }
 
-    /{
+   const geojsonData = {
   "type": "FeatureCollection",
   "features": [
     {
@@ -141844,7 +141825,9 @@
       }
     }
   ]
-}
-  </script>
+
+};
+addParcels(geojsonData);
+
 </body>
 </html>
