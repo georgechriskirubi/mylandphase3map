@@ -5,7 +5,7 @@
   <title>Secure Mavoko Land Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Leaflet Core -->
+  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -30,7 +30,6 @@
       height: 100vh;
     }
 
-    /* Logout button */
     #logoutBtn {
       position: fixed;
       top: 10px;
@@ -45,7 +44,7 @@
       z-index: 1000;
     }
 
-    /* User info bottom-right */
+    /* Bottom-right user info */
     #userInfo {
       position: fixed;
       bottom: 10px;
@@ -67,7 +66,7 @@
       color: #555;
     }
 
-    /* Search bar */
+    /* Search bar styling */
     #searchContainer {
       position: fixed;
       top: 10px;
@@ -78,25 +77,27 @@
       padding: 8px 10px;
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      width: 220px;
     }
 
     #parcelSearch {
-      width: 200px;
+      width: 100%;
       padding: 6px;
       border: 1px solid #aaa;
       border-radius: 4px;
+      box-sizing: border-box;
     }
 
     #suggestions {
       background: white;
       border: 1px solid #aaa;
       border-top: none;
-      max-height: 120px;
+      max-height: 150px;
       overflow-y: auto;
       border-radius: 0 0 6px 6px;
       display: none;
       position: absolute;
-      width: 200px;
+      width: 220px;
     }
 
     #suggestions div {
@@ -122,7 +123,7 @@
     <p id="loginMsg" style="color:red;"></p>
   </div>
 
-  <!-- Custom search -->
+  <!-- Search -->
   <div id="searchContainer">
     <input type="text" id="parcelSearch" placeholder="Search Parcel No...">
     <div id="suggestions"></div>
@@ -131,7 +132,7 @@
   <div id="map"></div>
 
   <script>
-    // 🔥 Initialize Firebase
+    // 🔥 Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyAv9sckMh22FTjrnDQ0K4jxoMZ3alBRND8",
       authDomain: "my-land-phase3-2025.firebaseapp.com",
@@ -161,7 +162,7 @@
 
     logoutBtn.addEventListener("click", () => auth.signOut());
 
-    // ⏰ Live Date-Time
+    // Live clock
     function updateClock() {
       const now = new Date();
       const clock = document.getElementById("dateTime");
@@ -169,7 +170,7 @@
     }
     setInterval(updateClock, 1000);
 
-    // 🧭 Auth State
+    // Auth listener
     auth.onAuthStateChanged(user => {
       if (user) {
         loginForm.style.display = "none";
@@ -190,32 +191,23 @@
       }
     });
 
-    // 🗺️ Map Initialization
+    // 🗺️ Initialize map
     function initMap() {
       const map = L.map("map").setView([-1.44, 37.00], 15);
 
-      // Base maps
       const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19, attribution: "© OpenStreetMap contributors"
+        maxZoom: 19, attribution: "© OpenStreetMap"
       }).addTo(map);
 
       const satellite = L.tileLayer("https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", {
-        maxZoom: 20, subdomains: ["mt0", "mt1", "mt2", "mt3"], attribution: "© Google"
+        maxZoom: 20, subdomains: ["mt0","mt1","mt2","mt3"], attribution: "© Google"
       });
 
-      L.control.layers(
-        { "OpenStreetMap": osm, "Satellite": satellite },
-        null, { position: "topleft" }
-      ).addTo(map);
+      L.control.layers({ "OSM": osm, "Satellite": satellite }, null, { position: "topleft" }).addTo(map);
 
-      // Locate Control
-      L.control.locate({
-        position: "topleft",
-        strings: { title: "Show my location" },
-        flyTo: true
-      }).addTo(map);
+      L.control.locate({ position: "topleft", flyTo: true }).addTo(map);
 
-      // 🧩 Example GeoJSON Data
+      // Example GeoJSON
       const geojsonData = {
   "type": "FeatureCollection",
   "features": [
@@ -141744,48 +141736,37 @@
       };
 
       const parcelLayer = L.geoJSON(geojsonData, {
-        style: {
-          color: "red", weight: 2, fillColor: "transparent", fillOpacity: 0
-        },
-        onEachFeature: (feature, layer) => {
-          layer.bindPopup(`<b>Parcel No:</b> ${feature.properties.Parcel_NO}`);
-        }
+        style: { color: "red", weight: 2, fillColor: "transparent", fillOpacity: 0 },
+        onEachFeature: (feature, layer) => layer.bindPopup(`<b>Parcel No:</b> ${feature.properties.Parcel_NO}`)
       }).addTo(map);
 
       map.fitBounds(parcelLayer.getBounds());
 
-      // 🔍 Auto-Suggest Parcel Search
-      const searchInput = document.getElementById("parcelSearch");
-      const suggestionsDiv = document.getElementById("suggestions");
+      // 🔍 Auto-suggest
       const parcels = [];
+      parcelLayer.eachLayer(l => parcels.push({ name: l.feature.properties.Parcel_NO, layer: l }));
 
-      parcelLayer.eachLayer(layer => {
-        parcels.push({
-          name: layer.feature.properties.Parcel_NO,
-          layer: layer
-        });
-      });
+      const input = document.getElementById("parcelSearch");
+      const suggestions = document.getElementById("suggestions");
 
-      searchInput.addEventListener("input", () => {
-        const value = searchInput.value.toLowerCase();
-        suggestionsDiv.innerHTML = "";
-        if (!value) {
-          suggestionsDiv.style.display = "none";
-          return;
-        }
-        const matches = parcels.filter(p => p.name.toLowerCase().includes(value));
-        matches.forEach(match => {
+      input.addEventListener("input", () => {
+        const val = input.value.trim().toLowerCase();
+        suggestions.innerHTML = "";
+        if (!val) { suggestions.style.display = "none"; return; }
+
+        const matched = parcels.filter(p => p.name.toLowerCase().includes(val));
+        matched.forEach(m => {
           const div = document.createElement("div");
-          div.textContent = match.name;
-          div.addEventListener("click", () => {
-            map.fitBounds(match.layer.getBounds());
-            match.layer.openPopup();
-            searchInput.value = match.name;
-            suggestionsDiv.style.display = "none";
-          });
-          suggestionsDiv.appendChild(div);
+          div.textContent = m.name;
+          div.onclick = () => {
+            map.fitBounds(m.layer.getBounds());
+            m.layer.openPopup();
+            input.value = m.name;
+            suggestions.style.display = "none";
+          };
+          suggestions.appendChild(div);
         });
-        suggestionsDiv.style.display = matches.length ? "block" : "none";
+        suggestions.style.display = matched.length ? "block" : "none";
       });
     }
   </script>
