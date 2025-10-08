@@ -57,12 +57,7 @@
       z-index: 1000;
     }
 
-    #dateTime {
-      display: block;
-      font-size: 0.85rem;
-      font-weight: normal;
-      color: #444;
-    }
+    #dateTime { display: block; font-size: 0.85rem; color: #444; }
 
     /* Collapsible search */
     #searchContainer {
@@ -72,7 +67,6 @@
       transform: translateX(-50%);
       z-index: 1000;
       display: none;
-      text-align: center;
     }
 
     #searchToggle {
@@ -118,9 +112,7 @@
       cursor: pointer;
     }
 
-    #suggestions div:hover {
-      background: #eee;
-    }
+    #suggestions div:hover { background: #eee; }
   </style>
 </head>
 <body>
@@ -140,7 +132,7 @@
   <div id="searchContainer">
     <button id="searchToggle">🔍</button>
     <div id="searchBox">
-      <input type="text" id="searchInput" placeholder="Search Parcel No..." autocomplete="off" />
+      <input type="text" id="searchInput" placeholder="Search Parcel No..." />
       <div id="suggestions"></div>
     </div>
   </div>
@@ -179,8 +171,10 @@
         .catch(err => loginMsg.textContent = "Login failed: " + err.message);
     });
 
+    // Logout
     logoutBtn.addEventListener("click", () => auth.signOut());
 
+    // Auth Listener
     auth.onAuthStateChanged(user => {
       if (user) {
         loginForm.style.display = "none";
@@ -198,6 +192,7 @@
       }
     });
 
+    // Initialize Map
     function initMap(userEmail) {
       const map = L.map("map").setView([-1.44, 37.00], 15);
 
@@ -141748,36 +141743,26 @@
           layer.bindPopup(`<b>Parcel No:</b> ${feature.properties.Parcel_NO}`);
         }
       }).addTo(map);
-
       map.fitBounds(parcelsLayer.getBounds());
+
       const parcels = geojsonData.features.map(f => f.properties.Parcel_NO);
 
-      // ---- FIXED SEARCH SECTION ----
+      // Collapsible Search Button
       let searchOpen = false;
-
-      // Toggle visibility
-      searchToggle.onclick = (e) => {
-        e.stopPropagation();
+      searchToggle.onclick = () => {
         searchOpen = !searchOpen;
         searchBox.style.display = searchOpen ? "block" : "none";
-        if (searchOpen) {
-          searchInput.focus();
-          suggestions.innerHTML = "";
-          suggestions.style.display = "none";
-        }
+        if (searchOpen) searchInput.focus();
       };
 
-      // Suggestion logic
+      // ✅ Fixed Auto-Suggest Logic
       searchInput.addEventListener("input", () => {
-        const query = searchInput.value.trim().toLowerCase();
+        const value = searchInput.value.trim().toLowerCase();
         suggestions.innerHTML = "";
-        if (!query) {
-          suggestions.style.display = "none";
-          return;
-        }
+        if (!value) { suggestions.style.display = "none"; return; }
 
-        const matches = parcels.filter(p => p.toLowerCase().includes(query));
-        if (matches.length > 0) {
+        const matches = parcels.filter(p => p.toLowerCase().includes(value));
+        if (matches.length) {
           matches.forEach(match => {
             const div = document.createElement("div");
             div.textContent = match;
@@ -141794,9 +141779,9 @@
         }
       });
 
-      // Hide suggestions when clicking outside
-      document.addEventListener("click", (e) => {
-        if (!searchContainer.contains(e.target)) {
+      // Ensure suggestions hide when clicking outside
+      document.addEventListener("click", e => {
+        if (!searchBox.contains(e.target) && e.target !== searchToggle) {
           suggestions.style.display = "none";
         }
       });
@@ -141804,13 +141789,11 @@
       function zoomToParcel(parcelNo) {
         parcelsLayer.eachLayer(layer => {
           if (layer.feature.properties.Parcel_NO === parcelNo) {
-            map.fitBounds(layer.getBounds());
+            map.fitBounds(layer.getBounds(), { maxZoom: 18 });
             layer.openPopup();
           }
         });
       }
-
-      // ---- END FIXED SEARCH SECTION ----
 
       // Live Time
       function updateTime() {
