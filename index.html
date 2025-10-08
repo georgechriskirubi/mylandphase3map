@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.css" />
   <script src="https://unpkg.com/leaflet.locatecontrol@0.78.0/dist/L.Control.Locate.min.js"></script>
 
-  <!-- Search Control with Auto-suggest -->
+  <!-- Search Control -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet-search@3.0.9/dist/leaflet-search.min.css" />
   <script src="https://unpkg.com/leaflet-search@3.0.9/dist/leaflet-search.min.js"></script>
 
@@ -47,7 +47,7 @@
       z-index: 1000;
     }
 
-    /* 👇 User info moved to bottom-right corner */
+    /* 👇 User info at bottom-right */
     #userInfo {
       position: fixed;
       bottom: 10px;
@@ -173,7 +173,7 @@
         flyTo: true
       }).addTo(map);
 
-      // 🗂️ Example GeoJSON (replace with your full data)
+      // 🗂️ Example GeoJSON Data
       const geojsonData = {
   "type": "FeatureCollection",
   "features": [
@@ -141701,7 +141701,7 @@
 
       };
 
-      // 🟥 Style & Popup
+      // 🟥 Base Style
       const geoLayer = L.geoJSON(geojsonData, {
         style: {
           color: "red",
@@ -141716,7 +141716,7 @@
 
       map.fitBounds(geoLayer.getBounds());
 
-      // 🔍 Add Search Control with Auto-Suggest
+      // 🔍 Search with highlight & zoom
       const searchControl = new L.Control.Search({
         layer: geoLayer,
         propertyName: "Parcel_NO",
@@ -141727,8 +141727,30 @@
           map.setView(latlng, 18);
         }
       });
+
+      searchControl.on('search:locationfound', function(e) {
+        // Highlight style
+        e.layer.setStyle({
+          color: 'yellow',
+          weight: 4,
+          fillColor: 'yellow',
+          fillOpacity: 0.3
+        });
+
+        // Zoom and open popup
+        map.fitBounds(e.layer.getBounds());
+        e.layer.openPopup();
+
+        // Remove highlight after 3 seconds
+        setTimeout(() => {
+          geoLayer.resetStyle(e.layer);
+          e.layer.closePopup();
+        }, 3000);
+      });
+
       map.addControl(searchControl);
     }
   </script>
 </body>
 </html>
+
