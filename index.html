@@ -61,16 +61,22 @@
       z-index: 1000;
     }
 
-    #dateTime { display: block; font-size: 0.85rem; color: #444; }
+    #dateTime {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: normal;
+      color: #444;
+    }
 
-    /* Collapsible search button (for icon look only) */
+    /* Collapsible Search */
     #searchContainer {
       position: fixed;
       top: 10px;
       left: 50%;
       transform: translateX(-50%);
-      z-index: 1500;
+      z-index: 1000;
       display: none;
+      text-align: center;
     }
 
     #searchToggle {
@@ -82,6 +88,11 @@
       height: 40px;
       cursor: pointer;
       font-size: 18px;
+    }
+
+    #searchBox {
+      display: none;
+      margin-top: 6px;
     }
   </style>
 </head>
@@ -99,9 +110,10 @@
 
   <div id="map"></div>
 
-  <!-- 🔍 Optional collapsible search icon -->
+  <!-- Collapsible Search Icon -->
   <div id="searchContainer">
     <button id="searchToggle">🔍</button>
+    <div id="searchBox"></div>
   </div>
 
   <script>
@@ -125,6 +137,7 @@
     const userInfo = document.getElementById("userInfo");
     const searchContainer = document.getElementById("searchContainer");
     const searchToggle = document.getElementById("searchToggle");
+    const searchBox = document.getElementById("searchBox");
 
     // Login
     loginBtn.addEventListener("click", () => {
@@ -135,10 +148,8 @@
         .catch(err => loginMsg.textContent = "Login failed: " + err.message);
     });
 
-    // Logout
     logoutBtn.addEventListener("click", () => auth.signOut());
 
-    // Auth Listener
     auth.onAuthStateChanged(user => {
       if (user) {
         loginForm.style.display = "none";
@@ -156,6 +167,7 @@
       }
     });
 
+    // Initialize Map
     function initMap(userEmail) {
       const map = L.map("map").setView([-1.44, 37.00], 15);
 
@@ -170,9 +182,14 @@
         attribution: "© Google"
       });
 
-      L.control.layers({ "OpenStreetMap": osm, "Satellite": satellite }).addTo(map);
-      L.control.locate({ position: "topleft", flyTo: true }).addTo(map);
+      L.control.layers(
+        { "OpenStreetMap": osm, "Satellite": satellite },
+        null, { position: "topleft" }
+      ).addTo(map);
 
+      L.control.locate({ position: "topleft", strings: { title: "Show my location" }, flyTo: true }).addTo(map);
+
+      // GeoJSON Data
       const geojsonData = {
   "type": "FeatureCollection",
   "features": [
@@ -141709,7 +141726,7 @@
 
       map.fitBounds(geoLayer.getBounds());
 
-      // ✅ Add Search Control
+      // ✅ Add Search Control (your working code)
       var searchControl = new L.Control.Search({
         layer: geoLayer,
         propertyName: 'Parcel_NO',
@@ -141718,19 +141735,30 @@
           map.setView(latlng, 18);
         }
       });
+
       searchControl.on('search:locationfound', function(e) {
         e.layer.setStyle({ color: '#ff0000', fillColor: '#ff9999' });
         e.layer.openPopup();
       });
+
       map.addControl(searchControl);
 
-      // 🔍 Optional: toggle visibility of search bar
-      let searchVisible = true;
-      searchToggle.onclick = () => {
-        const searchBox = document.querySelector('.leaflet-control-search');
-        searchVisible = !searchVisible;
-        searchBox.style.display = searchVisible ? 'block' : 'none';
+      // Collapsible Search Toggle
+      let searchOpen = false;
+      searchToggle.onclick = (e) => {
+        e.stopPropagation();
+        searchOpen = !searchOpen;
+        searchBox.style.display = searchOpen ? "block" : "none";
+        const searchBar = document.querySelector('.search-input');
+        if (searchOpen && searchBar) searchBar.focus();
       };
+
+      document.addEventListener("click", (e) => {
+        if (searchOpen && !searchContainer.contains(e.target)) {
+          searchBox.style.display = "none";
+          searchOpen = false;
+        }
+      });
 
       // Live Time
       function updateTime() {
